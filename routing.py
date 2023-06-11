@@ -1,50 +1,58 @@
 import csv
+from typing import Optional, Union, List
 
 
 class Address:
-    def __init__(self, street, zipcode):
+    def __init__(self, street: str, zipcode: str, index: int):
         self.street = street
         self.zipcode = zipcode
+        self.index = index
 
-    def __str__(self):
-        return f'Street: {self.street}, Zipcode: {self.zipcode}\n'
+    def __str__(self) -> str:
+        return f'Street: {self.street}, Zipcode: {self.zipcode}'
 
 
-class Addresses:
-    all_addresses = []
-    hub_address = None
+class AddressCollection:
+    def __init__(self):
+        self.all_addresses = {}
+        self.hub_address = None
 
-    def import_addresses(self, file):
+    def import_addresses(self, file: str):
         with open(file, newline='') as addresses:
             address_data = csv.reader(addresses)
+            index = 0
             for address in address_data:
                 address = address[0].strip()
                 street, zipcode = address.split('\n')
                 zipcode = zipcode.strip('()')
-                new_address = Address(street, zipcode)
-                self.all_addresses.append(new_address)
-        self.hub_address = self.all_addresses[0].street
+                street = street.upper()
+                street = street.replace('NORTH', 'N')
+                street = street.replace('EAST', 'E')
+                street = street.replace('SOUTH', 'S')
+                street = street.replace('WEST', 'W')
+
+                new_address = Address(street, zipcode, index)
+                self.all_addresses[street + ' ' + zipcode] = new_address
+                index += 1
+            self.hub_address = list(self.all_addresses.values())[0]
 
 
-class Distances:
-    all_distances = []
+class DistanceCollection:
+    def __init__(self):
+        self.all_distances: List[List[Optional[float]]] = []
 
-    def import_distances(self, file):
+    def import_distances(self, file: str):
         with open(file, newline='') as distances:
             distance_data = csv.reader(distances)
             for distance in distance_data:
-                self.all_distances.append(distance)
+                float_value = [float(d) for d in distance if d != '']
+                self.all_distances.append(float_value)
 
-    def distance_between(self, address_list, address1, address2):
-        i = 0
-        address1_index = None
-        address2_index = None
-        while i < len(address_list.all_addresses):
-            if address_list.all_addresses[i].street == address1:
-                address1_index = i
-            if address_list.all_addresses[i].street == address2:
-                address2_index = i
-            if address1_index is not None and address2_index is not None:
-                return self.all_distances[address2_index][address1_index]
-            i += 1
+    def distance_between(self, address_list: AddressCollection, address1: str, address2: str) -> Union[float, str]:
+        address1 = address1.upper()
+        address2 = address2.upper()
+        address1_index = address_list.all_addresses.get(address1).index
+        address2_index = address_list.all_addresses.get(address2).index
+        if address1_index is not None and address2_index is not None:
+            return self.all_distances[address2_index][address1_index]
         return 'Address not found. Double check spelling and try again.'

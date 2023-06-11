@@ -1,7 +1,5 @@
 import csv
 
-all_packages = None
-
 
 class Package:
     def __init__(self, package_id, address, city, state, zipcode, deadline, mass, notes=''):
@@ -53,21 +51,27 @@ class Hashtable:
         return None
 
 
-def import_packages(file):
-    global all_packages
-    all_packages = Hashtable()
-    with open(file, newline='') as packages:
-        package_data = csv.reader(packages)
-        next(package_data)
-        for package in package_data:
-            package_id = int(package[0])
-            address = package[1]
-            city = package[2]
-            state = package[3]
-            zipcode = package[4]
-            deadline = package[5]
-            mass = package[6]
-            notes = package[7]
+class PackageCollection:
+    def __init__(self):
+        self.all_packages = Hashtable()
 
-            new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
-            all_packages.insert(new_package)
+    def import_packages(self, file: str):
+        with open(file, newline='') as packages:
+            package_data = csv.reader(packages)
+            next(package_data)
+            for package in package_data:
+                package_id = int(package[0])
+                address = package[1].strip().upper()
+                city = package[2].strip().upper()
+                state = package[3].strip().upper()
+                zipcode = package[4].strip()
+                deadline = package[5].strip()
+                mass = package[6].strip()
+                notes = package[7].strip()
+                address = address.replace('NORTH', 'N')
+                address = address.replace('EAST', 'E')
+                address = address.replace('SOUTH', 'S')
+                address = address.replace('WEST', 'W')
+
+                new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
+                self.all_packages.insert(new_package)
