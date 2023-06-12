@@ -1,17 +1,20 @@
-import packages
-import routing
-# TODO - add addresses to dictionary instead of list
+from hub import Hub
 
-all_packages = packages.PackageCollection()
-all_packages.import_packages('data/WGUPS Package File.csv')
+package_list = 'data/WGUPS Package File.csv'
+address_list = 'data/WGUPS Address Table.csv'
+distance_list = 'data/WGUPS Distance Table.csv'
+num_operational_trucks = 2
 
-all_addresses = routing.AddressCollection()
-all_addresses.import_addresses('data/WGUPS Address Table.csv')
+hub = Hub(package_list, address_list, distance_list, num_operational_trucks)
 
-all_distances = routing.DistanceCollection()
-all_distances.import_distances('data/WGUPS Distance Table.csv')
+for i in range(1, 41):
+    if i not in (6, 9, 25, 28, 32):
+        hub.check_in_package(i)
+    hub.check_in_package(9, 4)
+    i += 1
 
-
+for i in range(1, 41):
+    print(hub.packages.all_packages.search(i))
 
 
 
@@ -20,17 +23,14 @@ all_distances.import_distances('data/WGUPS Distance Table.csv')
 
 
 '''
-i = 1
-while i <= 40:
-    print(all_packages.all_packages.search(i))
-    i += 1
+for i in range(1, 41):
+    print(hub.packages.all_packages.search(i))
 
-for address in all_addresses.all_addresses:
+for address in hub.addresses.all_addresses:
     print(address)
 
-for distance_list in all_distances.all_distances:
-    print(distance_list)
+print(hub.addresses.distance_between(hub.addresses.get_hub_address(), '2010 W 500 S 84104'))
 
-print(all_distances.distance_between(all_addresses, (all_addresses.hub_address.street + ' ' + all_addresses.hub_address.zipcode), '2010 W 500 S 84104'))
-print(f'Hub address: {all_addresses.hub_address}')
+for distance_list in hub.addresses.adjacency_matrix:
+    print(distance_list)
 '''
