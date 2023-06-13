@@ -1,5 +1,5 @@
 import csv
-from typing import Union, List
+from typing import Union
 
 
 class Address:
@@ -14,8 +14,9 @@ class Address:
 
 class AddressCollection:
     def __init__(self):
-        self.all_addresses = {}
-        self.adjacency_matrix: List[List[float]] = []
+        self.all_addresses: dict[str, Address] = {}
+        self.adjacency_matrix: list[list[float]] = []
+        self.delivery_addresses: dict[str, Address] = {}
         self.hub_address = None
 
     def import_addresses(self, file: str):
@@ -56,6 +57,9 @@ class AddressCollection:
             address2_index = self.all_addresses.get(address2).index
             return self.adjacency_matrix[address1_index][address2_index]
         return 'Address not found. Check spelling and try again.'
+
+    def add_delivery_address(self, delivery_address: str):
+        self.delivery_addresses[delivery_address] = self.all_addresses[delivery_address]
 
     def address_is_valid(self, address: str) -> bool:
         if address in self.all_addresses:
