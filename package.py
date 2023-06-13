@@ -29,6 +29,9 @@ class Package:
                 f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
                 f'Status: {self.status}')
 
+    def get_address(self):
+        return f'{self.address} {self.zipcode}'
+
 
 class Hashtable:
     def __init__(self, num_buckets: int = 10):
