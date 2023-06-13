@@ -21,16 +21,22 @@ class Package:
         self.deadline = deadline
         self.mass = mass
         self.notes = notes
+        self.truck_restriction = None
+        self.delivery_group = None
+        self.priority = None
         self.status_code = status_code
         self.status = self.status_codes.get(self.status_code)
 
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.address}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Status: {self.status}')
+                f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}')
 
     def get_address(self):
         return f'{self.address} {self.zipcode}'
+
+    def set_truck_restriction(self, truck_id: int):
+        self.truck_restriction = truck_id
 
 
 class Hashtable:
@@ -65,13 +71,26 @@ class Hashtable:
                 return package
         return None
 
+    def get_all_packages(self) -> list[Package]:
+        all_packages = []
+        for bucket in self.table:
+            for package in bucket:
+                all_packages.append(package)
+        all_packages.sort(key=lambda p: p.package_id)
+        return all_packages
+
+    def print_all_packages(self):
+        for package in self.get_all_packages():
+            print(package)
+
 
 class PackageCollection:
     def __init__(self):
-        self.all_packages = Hashtable()
+        self.package_table = Hashtable()
         self.num_packages = 0
 
     def import_packages(self, file: str):
+        from routing import calculate_delivery_groups, calculate_delivery_priority
         with open(file, newline='') as packages:
             package_data = csv.reader(packages)
             next(package_data)
@@ -90,5 +109,9 @@ class PackageCollection:
                 address = address.replace('WEST', 'W')
 
                 new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
-                self.all_packages.insert(new_package)
+                self.package_table.insert(new_package)
                 self.num_packages += 1
+            package_list = self.package_table.get_all_packages()
+            calculate_delivery_groups(package_list)
+            calculate_delivery_priority(package_list)
+

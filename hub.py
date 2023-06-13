@@ -18,7 +18,7 @@ class Hub:
             self.trucks.add_truck(truck)
 
     def check_in_package(self, package_id: int, status_override: int = None):
-        package = self.packages.all_packages.search(package_id)
+        package = self.packages.package_table.search(package_id)
         if status_override:
             package.status_code = status_override
             package.status = package.status_codes.get(status_override)
@@ -41,13 +41,19 @@ class Hub:
             load_size = self.trucks.all_trucks[0].package_capacity
         return load_size
 
-    def load_trucks(self, load_size: int, truck_number: int):
-        truck_index = truck_number - 1  # Convert truck number to index
+    def load_trucks(self, load_size: int, truck_id: int = 1):
+        truck_index = truck_id - 1  # Convert truck number to index
         if truck_index < len(self.trucks.all_trucks):
-            for i in range(0, load_size):
-                if self.packages_ready_for_dispatch and self.trucks.all_trucks[truck_index].is_ready_to_load:
-                    package = self.packages_ready_for_dispatch.pop(0)
-                    self.trucks.all_trucks[truck_index].load_package(package)
-            self.load_trucks(load_size, truck_number + 1)
+            while len(self.trucks.all_trucks[truck_index].package_manifest) < load_size:
+                truck = self.trucks.all_trucks[truck_index]
+                if self.packages_ready_for_dispatch and truck.is_at_hub:
+                    package = self.packages_ready_for_dispatch[0]
+                    if package.truck_restriction and package.truck_restriction != truck.truck_id:
+                        self.trucks.all_trucks[package.truck_restriction - 1].load_package(package)
+                        self.packages_ready_for_dispatch.pop(0)
+                    else:
+                        self.trucks.all_trucks[truck_index].load_package(package)
+                        self.packages_ready_for_dispatch.pop(0)
+            self.load_trucks(load_size, truck_id + 1)
 
 
