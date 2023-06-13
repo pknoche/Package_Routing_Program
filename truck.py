@@ -11,7 +11,7 @@ class Truck:
         self.package_manifest = []
         self.address_list = address_list
         self.package_capacity = package_capacity
-        self.is_ready_to_load = True
+        self.is_at_hub = True
 
     def load_package(self, package: Package) -> bool:
         if len(self.package_manifest) < self.package_capacity and package.status_code == 1:

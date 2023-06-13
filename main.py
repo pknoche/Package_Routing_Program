@@ -8,32 +8,26 @@ package_capacity_per_truck = 16
 
 hub = Hub(package_list, address_list, distance_list, num_operational_trucks, package_capacity_per_truck)
 
-for i in range(1, 41):
+for i in range(1, 41):  # Check in packages that have arrived at start of day
     if i not in (6, 9, 25, 28, 32):
         hub.check_in_package(i)
     hub.check_in_package(9, 4)
-print(hub.addresses.delivery_addresses)
-
-hub.trucks.all_trucks[0].is_ready_to_load = False
 
 
+for i in (5, 6, 35, 38):  # Set restriction for packages that can only go on truck 2
+    hub.packages.package_table.search(i).set_truck_restriction(2)
 
 
-hub.load_trucks(hub.calculate_load_size(num_operational_trucks), 1)
+hub.load_trucks(hub.calculate_load_size(num_operational_trucks))
 
-for i in range(1, 41):
-    print(hub.packages.all_packages.search(i))
 
-print('test')
+hub.packages.package_table.print_all_packages()
 
 
 
 
 
 '''
-for i in range(1, 41):
-    print(hub.packages.all_packages.search(i))
-
 for address in hub.addresses.all_addresses:
     print(address)
 
@@ -44,15 +38,15 @@ for distance_list in hub.addresses.adjacency_matrix:
     
 # test delivery:
 hub.trucks.all_trucks[1].address_list = hub.addresses.all_addresses
-hub.trucks.all_trucks[1].load_package(hub.packages.all_packages.search(1))
-hub.trucks.all_trucks[1].deliver_package(hub.packages.all_packages.search(1))
+hub.trucks.all_trucks[1].load_package(hub.packages.package_table.search(1))
+hub.trucks.all_trucks[1].deliver_package(hub.packages.package_table.search(1))
 
 
 
 for i in range(1, 41):
     if i not in (3, 6, 9, 14, 16, 18, 20, 25, 28, 32, 36, 37):
         if len(hub.trucks.all_trucks[0].package_manifest) <= 16:
-            package = hub.packages.all_packages.search(i)
+            package = hub.packages.package_table.search(i)
             address = package.get_address()
             hub.trucks.all_trucks[0].load_package(package)
 '''
