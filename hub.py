@@ -33,14 +33,45 @@ class Hub:
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.get_remaining_capacity() > 0:
                 for address in priority_list:
+                    skip_address = False
                     if len(priority_list.get(address)) < truck.get_remaining_capacity():
-                        while priority_list.get(address):
+                        for package in priority_list.get(address):
+                            if package.truck_restriction:
+                                if package.truck_restriction != truck.truck_id:
+                                    skip_address = True
+                        while priority_list.get(address) and not skip_address:
                             package = priority_list.get(address).pop()
                             truck.load_package(package, True)
                             self.packages_ready_for_dispatch.remove(package)
+        delivery_group_list = routing.calculate_delivery_group_list(self.packages_ready_for_dispatch)
         for truck in self.trucks.all_trucks:
-            if truck.get_remaining_capacity() > 0:
-                delivery_group_list = routing.calculate_delivery_group_list(self.packages_ready_for_dispatch)
+            if truck.is_at_hub and truck.get_remaining_capacity() > 0:
+                for address in delivery_group_list:
+                    skip_address = False
+                    if len(delivery_group_list.get(address)) < truck.get_remaining_capacity():
+                        for package in delivery_group_list.get(address):
+                            if package.truck_restriction:
+                                if package.truck_restriction != truck.truck_id:
+                                    skip_address = True
+                        while delivery_group_list.get(address) and not skip_address:
+                            package = delivery_group_list.get(address).pop()
+                            truck.load_package(package)
+                            self.packages_ready_for_dispatch.remove(package)
+        single_address_list = routing.generate_address_list(self.packages_ready_for_dispatch)
+        for truck in self.trucks.all_trucks:
+            if truck.is_at_hub:
+                for address, packages in single_address_list.items():
+                    skip_address = False
+                    for package in packages:
+                        if package.truck_restriction:
+                            if package.truck_restriction != truck.truck_id:
+                                skip_address = True
+                        while truck.get_remaining_capacity() > 0 and not skip_address:
+                            truck.load_package(package)
+
+
+
+
 
 
 
