@@ -12,9 +12,9 @@ class Truck:
         self.num_packages_loaded = 0
         self.is_at_hub = True
 
-    def load_package(self, package: Package, priority: bool = False):
+    def load_package(self, package: Package, is_priority: bool = False):
         address = package.get_address()
-        if priority:
+        if is_priority:
             if address in self.priority_package_manifest:
                 self.priority_package_manifest[address].append(package)
             else:
