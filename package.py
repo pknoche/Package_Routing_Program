@@ -8,9 +8,10 @@ class Package:
     status_codes = {
         0: 'Not Yet Arrived',
         1: 'Ready For Dispatch',
-        2: 'Out For Delivery',
-        3: 'Delivered',
-        4: 'Incorrect Address'
+        2: 'Loaded on Truck',
+        3: 'Out For Delivery',
+        4: 'Delivered',
+        5: 'Incorrect Address'
     }
 
     def __init__(self, package_id: int, address: str, city: str, state: str, zipcode: str, deadline: str,
@@ -25,14 +26,16 @@ class Package:
         self.notes = notes
         self.truck_restriction = None
         self.delivery_group = None
+        self.delivery_binding = None
         self.priority = None
         self.status_code = status_code
         self.status = self.status_codes.get(self.status_code)
+        self.ready_for_delivery = True
 
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}')
+                f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}, Ready for delivery: {self.ready_for_delivery}')
 
     def get_address(self):
         return f'{self.street} {self.zipcode}'
@@ -46,12 +49,17 @@ class Package:
             self.status = status
         else:
             self.status = self.status_codes.get(status_code)
+        if status_code == 5:
+            self.ready_for_delivery = False
 
     def mark_package_loaded(self, truck):  # TODO - add type hint
         self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {helper.get_time()}')
 
+    def mark_package_out_for_delivery(self, truck):  # TODO - add type hint
+        self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at {helper.get_time()}')
+
     def mark_package_delivered(self, truck):  # TODO - add type hint
-        self.set_package_status(3, f'Delivered by truck {truck.truck_id} at {helper.get_time()}')
+        self.set_package_status(4, f'Delivered by truck {truck.truck_id} at {helper.get_time()}')
 
 
 class Hashtable:
@@ -103,6 +111,7 @@ class PackageCollection:
     def __init__(self):
         self.package_table = Hashtable()
         self.num_packages = 0
+        self.delivery_binding = None
 
     def import_packages(self, file: str):
         from routing import calculate_delivery_groups, calculate_delivery_priority
