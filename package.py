@@ -1,6 +1,8 @@
 import csv
 from typing import Optional
 
+import helper
+
 
 class Package:
     status_codes = {
@@ -14,7 +16,7 @@ class Package:
     def __init__(self, package_id: int, address: str, city: str, state: str, zipcode: str, deadline: str,
                  mass: float, notes: str, status_code: int = 0):
         self.package_id = package_id
-        self.address = address
+        self.street = address
         self.city = city
         self.state = state
         self.zipcode = zipcode
@@ -28,15 +30,28 @@ class Package:
         self.status = self.status_codes.get(self.status_code)
 
     def __str__(self) -> str:
-        return (f'ID: {self.package_id}, Address: {self.address}, City: {self.city}, State: {self.state}, '
+        return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
                 f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}')
 
     def get_address(self):
-        return f'{self.address} {self.zipcode}'
+        return f'{self.street} {self.zipcode}'
 
     def set_truck_restriction(self, truck_id: int):
         self.truck_restriction = truck_id
+
+    def set_package_status(self, status_code: int, status: str = None):
+        self.status_code = status_code
+        if status:
+            self.status = status
+        else:
+            self.status = self.status_codes.get(status_code)
+
+    def mark_package_loaded(self, truck):  # TODO - add type hint
+        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {helper.get_time()}')
+
+    def mark_package_delivered(self, truck):  # TODO - add type hint
+        self.set_package_status(3, f'Delivered by truck {truck.truck_id} at {helper.get_time()}')
 
 
 class Hashtable:
@@ -107,11 +122,9 @@ class PackageCollection:
                 address = address.replace('EAST', 'E')
                 address = address.replace('SOUTH', 'S')
                 address = address.replace('WEST', 'W')
-
                 new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
                 self.package_table.insert(new_package)
                 self.num_packages += 1
             package_list = self.package_table.get_all_packages()
             calculate_delivery_groups(package_list)
             calculate_delivery_priority(package_list)
-

@@ -1,35 +1,51 @@
+import routing
 from hub import Hub
 
+# configuration settings
 package_list = 'data/WGUPS Package File.csv'
 address_list = 'data/WGUPS Address Table.csv'
 distance_list = 'data/WGUPS Distance Table.csv'
 num_operational_trucks = 2
 package_capacity_per_truck = 16
 
+# create delivery hub
 hub = Hub(package_list, address_list, distance_list, num_operational_trucks, package_capacity_per_truck)
 
-for i in range(1, 41):  # Check in packages that have arrived at start of day
+
+# Check in packages that have arrived at start of day
+for i in range(1, 41):
     if i not in (6, 9, 25, 28, 32):
         hub.check_in_package(i)
     hub.check_in_package(9, 4)
 
-
-for i in (5, 6, 35, 38):  # Set restriction for packages that can only go on truck 2
+# Set restriction for packages that can only go on truck 2
+for i in (5, 6, 35, 38):
     hub.packages.package_table.search(i).set_truck_restriction(2)
 
 
-hub.load_trucks(hub.calculate_load_size(num_operational_trucks))
+# first truck load-out
+hub.load_trucks()
 
 
-hub.packages.package_table.print_all_packages()
+for i in range(len(hub.trucks.all_trucks)):
+    print(f'The number of packages on truck {i + 1} is {hub.trucks.all_trucks[i].get_num_packages_loaded()}.')
+print('\n\n')
 
+for truck in hub.trucks.all_trucks:
+    print(f'Truck number {truck.truck_id}:')
+    for address, packages in truck.priority_package_manifest.items():
+        print(f'Address: {address}')
+        for package in packages:
+            print(package)
+        print('\n')
+    print('\n\n')
 
 
 
 
 '''
-for address in hub.addresses.all_addresses:
-    print(address)
+for street in hub.addresses.all_addresses:
+    print(street)
 
 print(hub.addresses.distance_between(hub.addresses.get_hub_address(), '2010 W 500 S 84104'))
 
@@ -47,6 +63,9 @@ for i in range(1, 41):
     if i not in (3, 6, 9, 14, 16, 18, 20, 25, 28, 32, 36, 37):
         if len(hub.trucks.all_trucks[0].package_manifest) <= 16:
             package = hub.packages.package_table.search(i)
-            address = package.get_address()
+            street = package.get_address()
             hub.trucks.all_trucks[0].load_package(package)
+            
+# print status of all packages
+hub.packages.package_table.print_all_packages()
 '''

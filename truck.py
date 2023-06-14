@@ -4,30 +4,40 @@ from package import Package
 
 
 class Truck:
-    def __init__(self, truck_id: int, package_capacity: int, address_list: dict[Address] = None):
-        if address_list is None:
-            address_list = {}
+    def __init__(self, truck_id: int, package_capacity: int):
         self.truck_id = truck_id
-        self.package_manifest = []
-        self.address_list = address_list
+        self.priority_package_manifest: dict[Address, list[Package]] = {}
+        self.package_manifest: dict[Address, list[Package]] = {}
         self.package_capacity = package_capacity
+        self.num_packages_loaded = 0
         self.is_at_hub = True
 
-    def load_package(self, package: Package) -> bool:
-        if len(self.package_manifest) < self.package_capacity and package.status_code == 1:
-            self.package_manifest.append(package)
-            package.status = f'Loaded on truck {self.truck_id} at {get_time()}'
-            return True
-        return False
+    def load_package(self, package: Package, priority: bool):
+        address = package.get_address()
+        if priority:
+            if address in self.priority_package_manifest:
+                self.priority_package_manifest[address].append(package)
+            else:
+                self.priority_package_manifest[address] = [package]
+        else:
+            if address in self.package_manifest:
+                self.package_manifest[address].append(package)
+            else:
+                self.package_manifest[address] = [package]
+        package.mark_package_loaded(self)
+        self.num_packages_loaded += 1
 
-    def deliver_package(self, package: Package) -> bool:
-        if package in self.package_manifest:
-            package.status_code = 3
-            package.status = f'Delivered by truck {self.truck_id} at {get_time()}'
-            self.package_manifest.remove(package)
-            self.address_list.pop(package.get_address())
-            return True
-        return False
+    def deliver_packages(self, address: Address):
+        if address in self.package_manifest:
+            for package in self.package_manifest.get(address):
+                package.status = f'Delivered by truck {self.truck_id}'
+        del self.package_manifest[address]
+
+    def get_num_packages_loaded(self):
+        return self.num_packages_loaded
+
+    def get_remaining_capacity(self):
+        return self.package_capacity - self.num_packages_loaded
 
 
 class TruckCollection:
