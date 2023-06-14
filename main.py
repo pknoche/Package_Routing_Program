@@ -19,8 +19,10 @@ for i in range(1, 41):
     hub.check_in_package(9, 4)
 
 # Set restriction for packages that can only go on truck 2
-for i in (5, 6, 35, 38):
+for i in (3, 5, 6, 35, 38):
     hub.packages.package_table.search(i).set_truck_restriction(2)
+
+
 
 
 # first truck load-out
@@ -33,12 +35,22 @@ print('\n\n')
 
 for truck in hub.trucks.all_trucks:
     print(f'Truck number {truck.truck_id}:')
+    print('Priority List:')
     for address, packages in truck.priority_package_manifest.items():
         print(f'Address: {address}')
         for package in packages:
             print(package)
         print('\n')
+    print('\n')
+    print('Standard List:')
+    for address, packages in truck.package_manifest.items():
+        print(f'Address: {address}')
+        for package in packages:
+            print(package)
     print('\n\n')
+
+# print status of all packages
+hub.packages.package_table.print_all_packages()
 
 
 

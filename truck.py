@@ -12,7 +12,7 @@ class Truck:
         self.num_packages_loaded = 0
         self.is_at_hub = True
 
-    def load_package(self, package: Package, priority: bool):
+    def load_package(self, package: Package, priority: bool = False):
         address = package.get_address()
         if priority:
             if address in self.priority_package_manifest:
@@ -38,6 +38,7 @@ class Truck:
 
     def get_remaining_capacity(self):
         return self.package_capacity - self.num_packages_loaded
+
 
 
 class TruckCollection:
