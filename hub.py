@@ -1,3 +1,4 @@
+import routing
 from address import AddressCollection
 from package import PackageCollection, Package
 from truck import TruckCollection, Truck
@@ -20,28 +21,33 @@ class Hub:
     def check_in_package(self, package_id: int, status_override: int = None):
         package = self.packages.package_table.search(package_id)
         if status_override:
-            package.status_code = status_override
-            package.status = package.status_codes.get(status_override)
+            package.set_package_status(status_override)
         elif self.addresses.address_is_valid(package.get_address()):
-            package.status_code = 1
-            package.status = package.status_codes.get(1)
-            self.addresses.add_delivery_address(package.get_address())
+            package.set_package_status(1)
             self.packages_ready_for_dispatch.append(package)
         else:
-            package.status_code = 4
-            package.status = package.status_codes.get(4)
+            package.set_package_status(4)
 
-    def calculate_load_size(self, num_trucks: int):
-        load_size = len(self.addresses.delivery_addresses) // num_trucks  # this calculation could yield a
-        # lower number than the actual number of packages if there are multiple packages ready to dispatch for one
-        # address. Still, the logic is desired because it results in an even distribution of stops per truck.
-        # There is an opportunity to optimize this in the future. FIXME - review
-        if load_size > self.trucks.all_trucks[0].package_capacity:  # This code will need to be modified
-            # if functionality is added to have different capacity trucks per collection in the future.
-            load_size = self.trucks.all_trucks[0].package_capacity
-        return load_size
+    def load_trucks(self):
+        priority_list = routing.calculate_priority_list(self.packages_ready_for_dispatch)
+        for truck in self.trucks.all_trucks:
+            if truck.is_at_hub and truck.get_remaining_capacity() > 0:
+                for address in priority_list:
+                    if len(priority_list.get(address)) < truck.get_remaining_capacity():
+                        while priority_list.get(address):
+                            package = priority_list.get(address).pop()
+                            truck.load_package(package, True)
+                            self.packages_ready_for_dispatch.remove(package)
+        for truck in self.trucks.all_trucks:
+            if truck.get_remaining_capacity() > 0:
+                delivery_group_list = routing.calculate_delivery_group_list(self.packages_ready_for_dispatch)
 
-    def load_trucks(self, load_size: int, truck_id: int = 1):
+
+
+
+
+
+        ''' TODO - remove
         truck_index = truck_id - 1  # Convert truck number to index
         if truck_index < len(self.trucks.all_trucks):
             while len(self.trucks.all_trucks[truck_index].package_manifest) < load_size:
@@ -55,5 +61,6 @@ class Hub:
                         self.trucks.all_trucks[truck_index].load_package(package)
                         self.packages_ready_for_dispatch.pop(0)
             self.load_trucks(load_size, truck_id + 1)
+            '''
 
 

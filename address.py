@@ -4,12 +4,11 @@ from typing import Union
 
 class Address:
     def __init__(self, street: str, zipcode: str, index: int):
-        self.street = street
-        self.zipcode = zipcode
+        self.address = f'{street} {zipcode}'
         self.index = index
 
     def __str__(self) -> str:
-        return self.street + ' ' + self.zipcode
+        return self.address
 
 
 class AddressCollection:
@@ -69,20 +68,3 @@ class AddressCollection:
     def get_hub_address(self) -> str:
         return str(self.hub_address)
 
-
-# TODO - remove
-'''
-def import_distances(self, file: str):  
-        with open(file, newline='') as distances:
-            distance_data = csv.reader(distances)
-            for distance in distance_data:
-                float_value = [float(d) for d in distance if d != '']
-                self.adjacency_matrix.append(float_value)
-            i = 0
-            while i < (len(self.adjacency_matrix) - 1):
-                j = i + 1
-                while j < len(self.adjacency_matrix):
-                    self.adjacency_matrix[i].append(self.adjacency_matrix[j][i])
-                    j += 1
-                i += 1
-'''
