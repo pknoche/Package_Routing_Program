@@ -1,5 +1,11 @@
 from address import Address
 from package import Package
+from typing import TYPE_CHECKING
+
+from truck import Truck
+
+if TYPE_CHECKING:
+    from hub import Hub
 
 
 def generate_address_list(package_list: list[Package]) -> dict[Address, list[Package]]:
@@ -49,3 +55,36 @@ def calculate_delivery_group_list(package_list: list[Package]) -> dict[Address, 
     all_address_list = generate_address_list(package_list)
     delivery_group_list = {address: packages for address, packages in all_address_list.items() if len(packages) > 1}
     return delivery_group_list
+
+
+def calculate_initial_route(hub: 'Hub', truck: Truck) -> tuple[list[Address], float]:
+    priority_addresses = list(truck.priority_package_manifest.keys())
+    route = []
+    standard_addresses = list(truck.standard_package_manifest.keys())
+    current_address = truck.current_address
+    nearest_address = None
+    min_distance = float('inf')
+    total_distance = 0
+    while priority_addresses:
+        for address in priority_addresses:
+            distance = hub.addresses.distance_between(current_address, address)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_address = address
+        route.append(nearest_address)
+        total_distance += min_distance
+        current_address = nearest_address
+        priority_addresses.remove(current_address)
+        min_distance = float('inf')
+    while standard_addresses:
+        for address in standard_addresses:
+            distance = hub.addresses.distance_between(current_address, address)
+            if distance < min_distance:
+                min_distance = distance
+                nearest_address = address
+        route.append(nearest_address)
+        total_distance += min_distance
+        current_address = nearest_address
+        standard_addresses.remove(current_address)
+        min_distance = float('inf')
+    return route, total_distance

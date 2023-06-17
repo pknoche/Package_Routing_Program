@@ -1,19 +1,23 @@
 import datetime
 
-import routing
+from dev import tests
 from hub import Hub
 
+
+# ----------------------------------------------------------------------------------------------------------------------
 # configuration settings
-package_list = 'data/WGUPS Package File.csv'
-address_list = 'data/WGUPS Address Table.csv'
-distance_list = 'data/WGUPS Distance Table.csv'
+package_data = 'data/WGUPS Package File.csv'
+address_data = 'data/WGUPS Address Table.csv'
+distance_data = 'data/WGUPS Distance Table.csv'
 num_operational_trucks = 2
 package_capacity_per_truck = 16
 
-# create delivery hub
-hub = Hub(package_list, address_list, distance_list, num_operational_trucks, package_capacity_per_truck,
+# Create delivery hub
+hub = Hub(package_data, address_data, distance_data, num_operational_trucks, package_capacity_per_truck,
           datetime.time(hour=8, minute=0))
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Package Configuration
 # Check in packages that have arrived at start of day
 for i in range(1, 41):
     if i not in (6, 9, 25, 28, 32):
@@ -27,46 +31,21 @@ for i in (3, 18, 36, 38):
 # Group of packages that must be delivered on same truck
 hub.packages.delivery_binding = (13, 14, 15, 16, 19, 20)
 
+# ----------------------------------------------------------------------------------------------------------------------
+# Run Program
+
 # first truck load-out
 hub.load_trucks()
+hub.calculate_routes()
 
 # print number of packages per truck
-for i in range(len(hub.trucks.all_trucks)):
-    print(f'The number of packages on truck {i + 1} is {hub.trucks.all_trucks[i].get_num_packages_loaded()}.')
-print('\n\n')
-
-# print manifests for each truck
-for truck in hub.trucks.all_trucks:
-    print(f'Truck number {truck.truck_id}:')
-    print('Priority List:')
-    for address, packages in truck.priority_package_manifest.items():
-        print(f'Address: {address}')
-        for package in packages:
-            print(package)
-        print('\n')
-    print('\n')
-    print('Standard List:')
-    for address, packages in truck.package_manifest.items():
-        print(f'Address: {address}')
-        for package in packages:
-            print(package)
-    print('\n\n')
+tests.print_package_manifests(hub)
 
 # print status of all packages
-hub.packages.package_table.print_all_packages()
+tests.print_all_packages(hub)
 
-'''
-# print all streets
-for street in hub.addresses.all_addresses:
-    print(street)
+tests.print_adjacency_matrix(hub)
 
-# test distance_between function
-print(hub.addresses.distance_between(hub.addresses.get_hub_address(), '2010 W 500 S 84104'))
+tests.print_hash_table(hub)
 
-# print adjacency matrix
-for distance_list in hub.addresses.adjacency_matrix:
-    print(distance_list)
-            
-# print status of all packages
-hub.packages.package_table.print_all_packages()
-'''
+tests.print_initial_routes(hub)
