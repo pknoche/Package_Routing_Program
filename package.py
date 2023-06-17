@@ -1,7 +1,10 @@
 import csv
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 import helper
+
+if TYPE_CHECKING:
+    from truck import Truck
 
 
 class Package:
@@ -52,13 +55,13 @@ class Package:
         if status_code == 5:
             self.ready_for_delivery = False
 
-    def mark_package_loaded(self, truck):  # TODO - add type hint
+    def mark_package_loaded(self, truck: 'Truck'):  # TODO - research forward references
         self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {helper.get_time()}')
 
-    def mark_package_out_for_delivery(self, truck):  # TODO - add type hint
+    def mark_package_out_for_delivery(self, truck: 'Truck'):  # TODO ^
         self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at {helper.get_time()}')
 
-    def mark_package_delivered(self, truck):  # TODO - add type hint
+    def mark_package_delivered(self, truck: 'Truck'):  # TODO ^
         self.set_package_status(4, f'Delivered by truck {truck.truck_id} at {helper.get_time()}')
 
 

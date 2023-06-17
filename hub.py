@@ -17,8 +17,9 @@ class Hub:
         self.addresses.import_distances(distance_file)
         self.trucks = TruckCollection()
         self.packages_ready_for_dispatch: list[Package] = []
+        self.hub_address = self.addresses.get_hub_address()
         for i in range(num_trucks):
-            truck = Truck((i + 1), package_capacity_per_truck)
+            truck = Truck((i + 1), package_capacity_per_truck, self.hub_address)
             self.trucks.add_truck(truck)
         self.route_start_time = route_start_time
 
@@ -83,6 +84,12 @@ class Hub:
                             truck.load_package(package)
                             self.packages_ready_for_dispatch.remove(package)
 
-    def dispatch_trucks(self):  # TODO
-        pass
+    def calculate_routes(self):
+        route = None
+        distance = None
+        for truck in self.trucks.all_trucks:
+            if truck.is_at_hub:
+                route, distance = routing.calculate_initial_route(self, truck)
+                truck.set_route(route)
+                truck.set_route_distance(distance)
 
