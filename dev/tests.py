@@ -1,3 +1,6 @@
+import routing
+
+
 def print_package_manifests(hub):
     # print number of packages on each truck
     print('Package Manifests:')
@@ -62,14 +65,21 @@ def print_hash_table(hub):
 
 def print_initial_routes(hub):
     for truck in hub.trucks.all_trucks:
-        print(f'Truck {truck.truck_id} route: {truck.route}\nDistance: {truck.initial_route_distance}')
-        print(f'The distance between {hub.addresses.get_hub_address()} and {str(truck.route[0])} is '
-              f'{hub.addresses.distance_between(hub.addresses.get_hub_address(), str(truck.route[0]))}')
+        print(
+            f'Truck {truck.truck_id} priority route: {truck.priority_route}\nDistance: {routing.calculate_route_distance(hub, truck.priority_route)}')
         j = 0
-        for i in range(len(truck.route) - 1):
+        for i in range(len(truck.priority_route) - 1):
             print(
-                f'The distance between {str(truck.route[j])} and {str(truck.route[j + 1])} is '
-                f'{hub.addresses.distance_between(str(truck.route[j]), str(truck.route[j + 1]))}')
+                f'The distance between {str(truck.priority_route[j])} and {str(truck.priority_route[j + 1])} is '
+                f'{hub.addresses.distance_between(truck.priority_route[j], truck.priority_route[j + 1])}')
+            i += 1
+            j += 1
+        j = 0
+        print(f'Truck {truck.truck_id} standard route: {truck.standard_route}\nDistance: {routing.calculate_route_distance(hub, truck.standard_route)}')
+        for i in range(len(truck.standard_route) - 1):
+            print(
+                f'The distance between {str(truck.standard_route[j])} and {str(truck.standard_route[j + 1])} is '
+                f'{hub.addresses.distance_between(truck.standard_route[j], truck.standard_route[j + 1])}')
             i += 1
             j += 1
         print()
@@ -81,3 +91,34 @@ def print_all_tests(hub):
     print_adjacency_matrix(hub)
     test_distance_function(hub)
     print_hash_table(hub)
+
+
+# Replace the function by the same name in hub.py to print the route after each round of optimization
+'''
+    def calculate_routes(self):
+        # print route with no optimization
+        for truck in self.trucks.all_trucks:
+            priority_route = list(truck.priority_package_manifest.keys())
+            standard_route = list(truck.standard_package_manifest.keys())
+            route = priority_route + standard_route + [self.addresses.get_hub_address()]
+            distance = 0.0
+            if truck.is_at_hub:
+                for i in range(len(route) - 1):
+                    distance += self.addresses.distance_between(route[i], route[i + 1])
+            truck.set_route(route)
+        print('No Optimization:')
+        tests.print_initial_routes(self)
+
+        # perform initial optimization with nearest neighbor
+        for truck in self.trucks.all_trucks:
+            if truck.is_at_hub:
+                routing.nearest_neighbor(self, truck)
+        print('After Initial Optimization:')
+        tests.print_initial_routes(self)
+
+        # perform additional optimization with 2-opt
+        for truck in self.trucks.all_trucks:
+            routing.two_opt(self, truck)
+        print('After 2-Opt:')
+        tests.print_initial_routes(self)
+'''
