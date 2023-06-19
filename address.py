@@ -48,14 +48,14 @@ class AddressCollection:
                 for j in range(i + 1, n):
                     self.adjacency_matrix[i][j] = self.adjacency_matrix[j][i]
 
-    def distance_between(self, address1: str, address2: str) -> Union[float, str]:
+    def distance_between(self, address1: str, address2: str) -> float:
         address1 = address1.upper()
         address2 = address2.upper()
         if (address1 in self.all_addresses) and (address2 in self.all_addresses):
             address1_index = self.all_addresses.get(address1).index
             address2_index = self.all_addresses.get(address2).index
             return self.adjacency_matrix[address1_index][address2_index]
-        return 'Address not found. Check spelling and try again.'
+
 
     def add_delivery_address(self, delivery_address: str):
         self.delivery_addresses[delivery_address] = self.all_addresses[delivery_address]
@@ -67,4 +67,7 @@ class AddressCollection:
 
     def get_hub_address(self) -> str:
         return str(self.hub_address)
+
+    def get_address(self, address: str) -> Address:
+        return self.all_addresses.get(address)
 

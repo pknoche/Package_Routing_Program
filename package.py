@@ -40,7 +40,7 @@ class Package:
                 f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
                 f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}, Ready for delivery: {self.ready_for_delivery}')
 
-    def get_address(self):
+    def get_address(self) -> str:
         return f'{self.street} {self.zipcode}'
 
     def set_truck_restriction(self, truck_id: int):
@@ -56,13 +56,15 @@ class Package:
             self.ready_for_delivery = False
 
     def mark_package_loaded(self, truck: 'Truck'):  # TODO - research forward references
-        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {helper.get_time()}')
+        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.hub.time_tracking.get_time()}')
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):  # TODO ^
-        self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at {helper.get_time()}')
+        self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '
+                                   f'{truck.hub.time_tracking.get_time()}')
 
     def mark_package_delivered(self, truck: 'Truck'):  # TODO ^
-        self.set_package_status(4, f'Delivered by truck {truck.truck_id} at {helper.get_time()}')
+        self.set_package_status(4, f'Delivered by truck {truck.truck_id} at '
+                                   f'{truck.hub.time_tracking.get_time().time()}')
 
 
 class Hashtable:
