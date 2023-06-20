@@ -69,7 +69,7 @@ def print_routes(hub):
     for truck in hub.trucks.all_trucks:
         print(
             f'Truck {truck.truck_id} priority route: {truck.priority_route}\n'
-            f'Distance: {routing.calculate_route_distance(hub, truck.priority_route)}')
+            f'Distance: {routing.calculate_route_distance(hub, truck.priority_route):.1f} miles')
         j = 0
         for i in range(len(truck.priority_route) - 1):
             print(
@@ -79,11 +79,11 @@ def print_routes(hub):
             j += 1
         j = 0
         print(f'Truck {truck.truck_id} standard route: {truck.standard_route}\n'
-              f'Distance: {routing.calculate_route_distance(hub, truck.standard_route)}')
+              f'Distance: {routing.calculate_route_distance(hub, truck.standard_route):.1f} miles')
         for i in range(len(truck.standard_route) - 1):
             print(
                 f'The distance between {str(truck.standard_route[j])} and {str(truck.standard_route[j + 1])} is '
-                f'{hub.addresses.distance_between(truck.standard_route[j], truck.standard_route[j + 1])}')
+                f'{hub.addresses.distance_between(truck.standard_route[j], truck.standard_route[j + 1]):.1f}')
             i += 1
             j += 1
         print()

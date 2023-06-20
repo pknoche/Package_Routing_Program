@@ -44,18 +44,20 @@ hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
 
-# Dispatch second truck for priority_1 delivery
+# Dispatch truck 2 for priority 1 deliveries if there are any.
 if hub.packages.priority_1_packages:
     truck2.set_route_start_time(hour=8, minute=0)
     truck2.set_ready_for_dispatch(True)
-    hub.load_priority_1_packages(truck2)
+    hub.load_trucks()
     hub.calculate_routes()
     hub.dispatch_trucks()
 
 # Check in late packages
 for i in (6, 25, 28, 32):
     hub.check_in_package(i)
-# Dispatch Truck 2 again
+# Dispatch Truck 2 and set route start time if it did not deliver priority 1 packages earlier.
+if not truck2.route_start_time:
+    truck2.set_route_start_time(hour=9, minute=5)
 truck2.set_ready_for_dispatch(True)
 hub.load_trucks()
 hub.calculate_routes()
@@ -82,7 +84,7 @@ total_distance_traveled = 0
 for truck in hub.trucks.all_trucks:
     total_distance_traveled += truck.total_miles_traveled
 
-print(f'Total distance traveled by all trucks: {total_distance_traveled} miles')
+print(f'Total distance traveled by all trucks: {total_distance_traveled:.1f} miles')
 
 # print number of packages per truck
 # tests.print_package_manifests(hub)
