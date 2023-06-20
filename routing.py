@@ -1,7 +1,7 @@
 import itertools
 
 from address import Address
-from package import Package
+from package import Package, PackageCollection
 from typing import TYPE_CHECKING
 
 from truck import Truck
@@ -31,10 +31,11 @@ def calculate_delivery_groups(package_list: list[Package]):
                 package.delivery_group = delivery_group
 
 
-def calculate_delivery_priority(package_list: list[Package]):
+def calculate_delivery_priority(package_collection: PackageCollection, package_list: list[Package]):
     for package in package_list:
         if package.deadline == '9:00 AM':
             package.priority = 1
+            PackageCollection.add_priority_1_package(package_collection, package)
         elif package.deadline == '10:30 AM':
             package.priority = 2
 
@@ -48,15 +49,21 @@ def calculate_priority_list(package_list: list[Package]) -> dict[str, list[Packa
         if package.delivery_group and package.delivery_group not in delivery_groups:
             delivery_groups.append(package.delivery_group)
     for package in package_list:
-        if package.delivery_group in delivery_groups and package not in priority_list:
+        if package.delivery_group in delivery_groups and package not in priority_list and priority_list:
             priority_list.append(package)
     return generate_address_list(priority_list)
 
 
-def calculate_delivery_group_list(package_list: list[Package]) -> dict[Address, list[Package]]:
+def generate_delivery_group_list(package_list: list[Package]) -> dict[str, list[Package]]:
     all_address_list = generate_address_list(package_list)
     delivery_group_list = {address: packages for address, packages in all_address_list.items() if len(packages) > 1}
     return delivery_group_list
+
+
+def generate_single_package_delivery_list(package_list: list[Package]) -> list[Package]:
+    all_address_list = generate_address_list(package_list)
+    single_address_list = [packages[0] for packages in all_address_list.values() if len(packages) == 1]
+    return single_address_list
 
 
 def nearest_neighbor(hub: 'Hub', truck: Truck):
@@ -67,6 +74,10 @@ def nearest_neighbor(hub: 'Hub', truck: Truck):
     standard_route = None
     nearest_address = None
     min_distance = float('inf')
+    if truck.priority_1_addresses:
+        for address in truck.priority_1_addresses:
+            priority_route.append(address)
+            priority_addresses.remove(address)
     while priority_addresses:
         for address in priority_addresses:
             distance = hub.addresses.distance_between(current_address, address)
@@ -94,30 +105,27 @@ def nearest_neighbor(hub: 'Hub', truck: Truck):
 
 
 def two_opt_priority(hub: 'Hub', truck: Truck):
-    num_swaps = 0
+    num_priority_1_addresses = len(truck.priority_1_addresses)
     route = truck.priority_route[:]
     lowest_distance = calculate_route_distance(hub, route)
     improvement = True
     while improvement:
         improvement = False
-        for swap_first in range(1, len(route)):  # This range prevents swapping of first element of route,
+        for swap_first in range(1 + num_priority_1_addresses, len(route)):  # This range prevents swapping of first element of route,
             # which is the truck's current address.
             for swap_last in range(swap_first + 1, len(route)):
                 new_route = route[:]
                 new_route[swap_first:swap_last + 1] = reversed(route[swap_first:swap_last + 1])  # + 1 is used so
                 # that the reversed call is inclusive of the swap_last element.
                 new_distance = calculate_route_distance(hub, new_route)
-                num_swaps += 1
                 if new_distance < lowest_distance:
                     route = new_route
                     lowest_distance = new_distance
                     improvement = True
-    print(f'Number of swaps performed: {num_swaps}')  # TODO - remove print statement
     truck.set_priority_route(route)
 
 
 def two_opt_standard(hub: 'Hub', truck: Truck):
-    num_swaps = 0
     route = truck.standard_route[:]
     lowest_distance = calculate_route_distance(hub, route)
     improvement = True
@@ -130,12 +138,10 @@ def two_opt_standard(hub: 'Hub', truck: Truck):
                 new_route[swap_first:swap_last + 1] = reversed(route[swap_first:swap_last + 1])  # + 1 is used so
                 # that the reversed call is inclusive of the swap_last element.
                 new_distance = calculate_route_distance(hub, new_route)
-                num_swaps += 1
                 if new_distance < lowest_distance:
                     route = new_route
                     lowest_distance = new_distance
                     improvement = True
-    print(f'Number of swaps performed: {num_swaps}')  # TODO - remove print statement
     truck.set_standard_route(route)
 
 

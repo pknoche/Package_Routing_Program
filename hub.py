@@ -10,7 +10,7 @@ from truck import TruckCollection, Truck
 
 class Hub:
     def __init__(self, package_file: str, address_file: str, distance_file: str, num_trucks: int,
-                 package_capacity_per_truck: int, truck_speed: float, route_start_time: time):
+                 package_capacity_per_truck: int, truck_speed: float):
         self.packages = PackageCollection()
         self.packages.import_packages(package_file)
         self.addresses = AddressCollection()
@@ -22,8 +22,6 @@ class Hub:
         for i in range(num_trucks):
             truck = Truck((i + 1), package_capacity_per_truck, truck_speed, self)
             self.trucks.add_truck(truck)
-        self.route_start_time = route_start_time
-        self.time_tracking = helper.TimeTracking(route_start_time)
 
     def check_in_package(self, package_id: int, status_override: int = None):
         package = self.packages.package_table.search(package_id)
@@ -35,6 +33,12 @@ class Hub:
         else:
             package.set_package_status(4)
 
+    def correct_package_address(self, package_id: int, street: str, city: str, state: str, zipcode: str):
+        package = self.packages.package_table.search(package_id)
+        package.update_address(street, city, state, zipcode)
+        package.set_package_status(1)
+        self.packages_ready_for_dispatch.append(package)
+
     def load_trucks(self):
         priority_list = routing.calculate_priority_list(self.packages_ready_for_dispatch)
         for truck in self.trucks.all_trucks:
@@ -43,10 +47,14 @@ class Hub:
                     skip_address = False
                     if len(priority_list.get(address)) < truck.get_remaining_capacity():
                         for package in priority_list.get(address):
-                            if self.time_tracking.get_time().time() <= self.route_start_time and truck.truck_id == 1 \
-                                    and package.package_id in self.packages.delivery_binding:  # don't load packages
-                                # bound together on first truck of day
-                                skip_address = True
+                            number_priority_packages = sum(len(packages) for packages in priority_list.values())
+                            number_bound_packages = len(self.packages.delivery_binding)
+                            if package.package_id in self.packages.delivery_binding and \
+                                    number_priority_packages + number_bound_packages > truck.get_remaining_capacity() \
+                                    and truck.truck_id == 1 and truck.total_miles_traveled == 0:
+                                skip_address = True  # Don't load packages
+                                # bound together on first truck of day in order to maximize number of priority packages
+                                # loaded on first truck if priority packages + bound packages is > truck capacity.
                             if package.truck_restriction and not skip_address:
                                 if package.truck_restriction != truck.truck_id:
                                     skip_address = True
@@ -54,15 +62,15 @@ class Hub:
                             package = priority_list.get(address).pop()
                             truck.load_package(package, True)
                             self.packages_ready_for_dispatch.remove(package)
-        delivery_group_list = routing.calculate_delivery_group_list(self.packages_ready_for_dispatch)
+        delivery_group_list = routing.generate_delivery_group_list(self.packages_ready_for_dispatch)
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch and truck.get_remaining_capacity() > 0:
                 for address in delivery_group_list:
                     skip_address = False
                     if len(delivery_group_list.get(address)) < truck.get_remaining_capacity():
-                        for package in delivery_group_list.get(address):
-                            if self.time_tracking.get_time().time() <= self.route_start_time and \
-                                    truck.truck_id == 1 and package.package_id in self.packages.delivery_binding:
+                        for package in delivery_group_list.get(address):  # FIXME - review logic for bound packages
+                            if package.package_id in self.packages.delivery_binding and truck.truck_id == 1 and \
+                                    truck.total_miles_traveled == 0:
                                 skip_address = True
                             if package.truck_restriction:
                                 if package.truck_restriction != truck.truck_id:
@@ -71,30 +79,30 @@ class Hub:
                             package = delivery_group_list.get(address).pop()
                             truck.load_package(package)
                             self.packages_ready_for_dispatch.remove(package)
-        single_address_list = routing.generate_address_list(self.packages_ready_for_dispatch)
+        single_address_list = routing.generate_single_package_delivery_list(self.packages_ready_for_dispatch)
         for truck in self.trucks.all_trucks:
-            if truck.is_at_hub:
-                for address, packages in single_address_list.items():
-                    for package in packages:
-                        if self.time_tracking.get_time().time() <= self.route_start_time and truck.truck_id == 1 and \
-                                package.package_id in self.packages.delivery_binding:
+            if truck.is_at_hub and truck.is_ready_for_dispatch and truck.get_remaining_capacity() > 0:
+                for package in single_address_list:
+                    if package.package_id in self.packages.delivery_binding and truck.truck_id == 1 and \
+                            truck.total_miles_traveled == 0:  # FIXME - review logic for bound packages
+                        continue
+                    if package.truck_restriction:
+                        if package.truck_restriction != truck.truck_id:
                             continue
-                        if package.truck_restriction:
-                            if package.truck_restriction != truck.truck_id:
-                                continue
-                        if truck.get_remaining_capacity() > 0:
-                            package = single_address_list.get(address).pop()
-                            truck.load_package(package)
-                            self.packages_ready_for_dispatch.remove(package)
+                    if truck.get_remaining_capacity() > 0:
+                        truck.load_package(package)
+                        self.packages_ready_for_dispatch.remove(package)
+
+    def load_priority_1_packages(self, truck: Truck):
+        for package in self.packages.priority_1_packages:
+            truck.load_package(package)
+            self.packages_ready_for_dispatch.remove(package)
 
     def calculate_routes(self):  # TODO - remove print statements
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch:
-                priority_route = list(truck.priority_package_manifest.keys())
-                standard_route = list(truck.standard_package_manifest.keys())
-                route = priority_route + standard_route + [self.addresses.get_hub_address()]
                 routing.calculate_route(self, truck)
-                tests.print_initial_routes(self)
+                tests.print_routes(self)
 
     def dispatch_trucks(self):
         for truck in self.trucks.all_trucks:

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import routing
 
 
@@ -63,10 +65,11 @@ def print_hash_table(hub):
     print()
 
 
-def print_initial_routes(hub):
+def print_routes(hub):
     for truck in hub.trucks.all_trucks:
         print(
-            f'Truck {truck.truck_id} priority route: {truck.priority_route}\nDistance: {routing.calculate_route_distance(hub, truck.priority_route)}')
+            f'Truck {truck.truck_id} priority route: {truck.priority_route}\n'
+            f'Distance: {routing.calculate_route_distance(hub, truck.priority_route)}')
         j = 0
         for i in range(len(truck.priority_route) - 1):
             print(
@@ -75,7 +78,8 @@ def print_initial_routes(hub):
             i += 1
             j += 1
         j = 0
-        print(f'Truck {truck.truck_id} standard route: {truck.standard_route}\nDistance: {routing.calculate_route_distance(hub, truck.standard_route)}')
+        print(f'Truck {truck.truck_id} standard route: {truck.standard_route}\n'
+              f'Distance: {routing.calculate_route_distance(hub, truck.standard_route)}')
         for i in range(len(truck.standard_route) - 1):
             print(
                 f'The distance between {str(truck.standard_route[j])} and {str(truck.standard_route[j + 1])} is '
@@ -83,6 +87,35 @@ def print_initial_routes(hub):
             i += 1
             j += 1
         print()
+
+
+def calculate_on_time_delivery(hub):
+    time_format = '%I:%M %p'
+    for package in hub.packages.package_table.get_all_packages():
+        if package.deadline == 'EOD':
+            if package.status_code == 4:
+                package.delivered_on_time = True
+        else:
+            deadline = package.deadline
+            deadline_time = datetime.strptime(deadline, time_format).time()
+            if package.delivery_time:
+                if deadline_time < package.delivery_time:
+                    package.delivered_on_time = False
+                else:
+                    package.delivered_on_time = True
+    all_on_time = True
+    for package in hub.packages.package_table.get_all_packages():
+        if not package.delivered_on_time:
+            all_on_time = False
+            break
+    if all_on_time:
+        print('All packages were delivered on time!')
+    elif not all_on_time:
+        print('Some packages were delivered late :(')
+
+
+
+
 
 
 def print_all_tests(hub):
