@@ -29,7 +29,6 @@ class Package:
         self.notes = notes
         self.truck_restriction = None
         self.delivery_group = None
-        self.delivery_binding = None
         self.priority = None
         self.status_code = status_code
         self.status = self.status_codes.get(self.status_code)
@@ -68,8 +67,7 @@ class Package:
 
     def mark_package_loaded(self, truck: 'Truck'):
         self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.get_time()}')
-        if self.priority == 1:
-            truck.hub.packages.remove_priority_1_package(self)
+
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):
         self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '

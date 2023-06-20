@@ -13,6 +13,7 @@ class Truck:
         self.truck_id = truck_id
         self.priority_package_manifest: dict[str, list[Package]] = {}
         self.standard_package_manifest: dict[str, list[Package]] = {}
+        self.packages_on_truck = set()
         self.priority_route = []
         self.standard_route = []
         self.package_capacity = package_capacity
@@ -25,37 +26,29 @@ class Truck:
         self.speed = speed
         self.route_start_time = None
         self.date_time: Union[datetime, None] = None
-        self.priority_1_addresses = []
+        self.priority_1_addresses = set()
+        self.priority_address_list = set()
 
-    def load_package(self, package: Package, is_priority: bool = False):
-        address = package.get_address()
-        if is_priority:
-            if address in self.priority_package_manifest:
-                self.priority_package_manifest[address].append(package)
-            else:
-                self.priority_package_manifest[address] = [package]
-            if package.priority == 1:
-                if package.get_address() not in self.priority_1_addresses:
-                    self.priority_1_addresses.append(package.get_address())
+    def load_package(self, package: Package):
+        if self.get_remaining_capacity() > 0:
+            self.packages_on_truck.add(package)
+            self.num_packages_loaded += 1
         else:
-            if address in self.standard_package_manifest:
-                self.standard_package_manifest[address].append(package)
-            else:
-                self.standard_package_manifest[address] = [package]
-        package.mark_package_loaded(self)
-        self.num_packages_loaded += 1
+            print('WARNING: truck reached capacity while loading package groups and routes may not be optimal.')
 
     def deliver_packages(self, address: str):
         if address in self.priority_package_manifest:
             for package in self.priority_package_manifest.get(address):
                 if package.ready_for_delivery:
                     package.mark_package_delivered(self)
+                    self.packages_on_truck.remove(package)
                     self.num_packages_loaded -= 1
             del self.priority_package_manifest[address]
         elif address in self.standard_package_manifest:
             for package in self.standard_package_manifest.get(address):
                 if package.ready_for_delivery:
                     package.mark_package_delivered(self)
+                    self.packages_on_truck.remove(package)
                     self.num_packages_loaded -= 1
             del self.standard_package_manifest[address]
 
@@ -87,7 +80,8 @@ class Truck:
             self.current_address = address
             self.deliver_packages(address)
             if miles_traveled > 0:
-                print(f'Truck {self.truck_id} navigated from {starting_address} to {address} ({miles_traveled} miles).')
+                print(f'Truck {self.truck_id} navigated from {starting_address} to {address} '
+                      f'({miles_traveled:.1f} miles).')
         for address in self.standard_route:
             starting_address = self.current_address
             miles_traveled = self.hub.addresses.distance_between(self.current_address, address)
@@ -103,11 +97,12 @@ class Truck:
 
     def return_to_hub(self):
         hub_address = self.hub.get_hub_address()
-        self.total_miles_traveled += self.hub.addresses.distance_between(self.current_address, hub_address)
-        self.current_address = hub_address
-        self.priority_route = []
-        self.standard_route = []
-        self.priority_1_addresses = []
+        if self.current_address != hub_address:
+            self.total_miles_traveled += self.hub.addresses.distance_between(self.current_address, hub_address)
+            self.current_address = hub_address
+        self.priority_route.clear()
+        self.standard_route.clear()
+        self.priority_1_addresses.clear()
         self.is_at_hub = True
         self.is_ready_for_dispatch = False
         print(f'Truck {self.truck_id} returned to the hub at {self.get_time()}')
@@ -124,14 +119,24 @@ class Truck:
         self.date_time = datetime.combine(date, current_time)
 
     def add_time(self, hours: float):
-        if self.date_time:
-            time_delta = timedelta(hours=hours)
-            self.date_time += time_delta
+        time_delta = timedelta(hours=hours)
+        self.date_time += time_delta
 
     def get_time(self):
         if self.date_time:
             return self.date_time.time()
 
+    def add_priority_address(self, address: str):
+        self.priority_address_list.add(address)
+
+    def get_priority_address_list(self) -> set[str]:
+        return self.priority_address_list
+
+    def set_priority_manifest(self, manifest: dict[str, list[Package]]):
+        self.priority_package_manifest = manifest
+
+    def set_standard_manifest(self, manifest: dict[str, list[Package]]):
+        self.standard_package_manifest = manifest
 
 class TruckCollection:
     def __init__(self):

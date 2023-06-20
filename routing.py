@@ -1,9 +1,6 @@
-import itertools
-
-from address import Address
-from package import Package, PackageCollection
 from typing import TYPE_CHECKING
 
+from package import Package, PackageCollection
 from truck import Truck
 
 if TYPE_CHECKING:
@@ -40,7 +37,7 @@ def calculate_delivery_priority(package_collection: PackageCollection, package_l
             package.priority = 2
 
 
-def calculate_priority_list(package_list: list[Package]) -> dict[str, list[Package]]:
+def generate_priority_list(package_list: list[Package]) -> dict[str, list[Package]]:
     priority_list = []
     delivery_groups = []
     for package in package_list:
@@ -71,7 +68,6 @@ def nearest_neighbor(hub: 'Hub', truck: Truck):
     current_address = truck.current_address
     priority_route = [current_address]
     standard_addresses = list(truck.standard_package_manifest.keys())
-    standard_route = None
     nearest_address = None
     min_distance = float('inf')
     if truck.priority_1_addresses:
@@ -111,8 +107,8 @@ def two_opt_priority(hub: 'Hub', truck: Truck):
     improvement = True
     while improvement:
         improvement = False
-        for swap_first in range(1 + num_priority_1_addresses, len(route)):  # This range prevents swapping of first element of route,
-            # which is the truck's current address.
+        for swap_first in range(1 + num_priority_1_addresses, len(route)):  # This range prevents swapping of
+            # first element of route, which is the truck's current address.
             for swap_last in range(swap_first + 1, len(route)):
                 new_route = route[:]
                 new_route[swap_first:swap_last + 1] = reversed(route[swap_first:swap_last + 1])  # + 1 is used so
