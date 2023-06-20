@@ -41,7 +41,8 @@ class AddressCollection:
         with open(file, newline='') as distances:
             distance_data = csv.reader(distances)
             for distance in distance_data:
-                float_values = [float(d) if d else 0.0 for d in distance]  # convert string from csv to float unless value is blank, in which case append 0.0
+                float_values = [float(d) if d else 0.0 for d in
+                                distance]  # convert string from csv to float unless value is blank, in which case append 0.0
                 self.adjacency_matrix.append(float_values)
             n = len(self.adjacency_matrix)
             for i in range(n):
@@ -56,7 +57,6 @@ class AddressCollection:
             address2_index = self.all_addresses.get(address2).index
             return self.adjacency_matrix[address1_index][address2_index]
 
-
     def add_delivery_address(self, delivery_address: str):
         self.delivery_addresses[delivery_address] = self.all_addresses[delivery_address]
 
@@ -70,4 +70,3 @@ class AddressCollection:
 
     def get_address(self, address: str) -> Address:
         return self.all_addresses.get(address)
-

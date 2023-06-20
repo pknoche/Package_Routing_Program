@@ -33,21 +33,32 @@ class Package:
         self.priority = None
         self.status_code = status_code
         self.status = self.status_codes.get(self.status_code)
-        self.ready_for_delivery = True
+        self.ready_for_delivery = False
+        self.delivery_time = None
+        self.delivered_on_time = None
 
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
-                f'Zip: {self.zipcode}, Delivery Deadline: {self.deadline}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Status: {self.status}, Delivery Group: {self.delivery_group}, Priority: {self.priority}, Ready for delivery: {self.ready_for_delivery}')
+                f'Zip: {self.zipcode}, Mass(kg): {self.mass}, Notes: {self.notes}, '
+                f'Status: {self.status}, Delivery Deadline: {self.deadline}, Delivery Time: {self.delivery_time}, '
+                f'Delivered On Time: {self.delivered_on_time}')
 
     def get_address(self) -> str:
         return f'{self.street} {self.zipcode}'
+
+    def update_address(self, street: str, city: str, state: str, zipcode: str):
+        self.street = street.upper()
+        self.city = city.upper()
+        self.state = state.upper()
+        self.zipcode = zipcode
 
     def set_truck_restriction(self, truck_id: int):
         self.truck_restriction = truck_id
 
     def set_package_status(self, status_code: int, status: str = None):
         self.status_code = status_code
+        if self.status_code == 1:
+            self.ready_for_delivery = True
         if status:
             self.status = status
         else:
@@ -55,16 +66,19 @@ class Package:
         if status_code == 5:
             self.ready_for_delivery = False
 
-    def mark_package_loaded(self, truck: 'Truck'):  # TODO - research forward references
-        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.hub.time_tracking.get_time()}')
+    def mark_package_loaded(self, truck: 'Truck'):
+        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.get_time()}')
+        if self.priority == 1:
+            truck.hub.packages.remove_priority_1_package(self)
 
-    def mark_package_out_for_delivery(self, truck: 'Truck'):  # TODO ^
+    def mark_package_out_for_delivery(self, truck: 'Truck'):
         self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '
-                                   f'{truck.hub.time_tracking.get_time()}')
+                                   f'{truck.get_time()}')
 
-    def mark_package_delivered(self, truck: 'Truck'):  # TODO ^
+    def mark_package_delivered(self, truck: 'Truck'):
         self.set_package_status(4, f'Delivered by truck {truck.truck_id} at '
-                                   f'{truck.hub.time_tracking.get_time().time()}')
+                                   f'{truck.get_time()}')
+        self.delivery_time = truck.get_time()
 
 
 class Hashtable:
@@ -116,7 +130,8 @@ class PackageCollection:
     def __init__(self):
         self.package_table = Hashtable()
         self.num_packages = 0
-        self.delivery_binding = None
+        self.delivery_binding = []
+        self.priority_1_packages = []
 
     def import_packages(self, file: str):
         from routing import calculate_delivery_groups, calculate_delivery_priority
@@ -141,4 +156,10 @@ class PackageCollection:
                 self.num_packages += 1
             package_list = self.package_table.get_all_packages()
             calculate_delivery_groups(package_list)
-            calculate_delivery_priority(package_list)
+            calculate_delivery_priority(self, package_list)
+
+    def add_priority_1_package(self, package: Package):
+        self.priority_1_packages.append(package)
+
+    def remove_priority_1_package(self, package: Package):
+        self.priority_1_packages.remove(package)
