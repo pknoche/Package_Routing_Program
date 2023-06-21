@@ -1,7 +1,6 @@
 from datetime import time, datetime, timedelta
 from typing import TYPE_CHECKING, Union
 
-import helper
 from package import Package
 
 if TYPE_CHECKING:
@@ -93,7 +92,8 @@ class Truck:
             if miles_traveled > 0:
                 print(f'Truck {self.truck_id} navigated from {starting_address} to {address} ({miles_traveled} miles).')
         self.return_to_hub()
-        print(f'Truck {self.truck_id} traveled a total distance of {self.total_miles_traveled} miles.\n')
+        print(f'Truck {self.truck_id} traveled a total distance of {self.total_miles_traveled:.1f} '
+              f'miles so far today.\n')
 
     def return_to_hub(self):
         hub_address = self.hub.get_hub_address()
