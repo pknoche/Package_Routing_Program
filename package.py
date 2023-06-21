@@ -33,6 +33,9 @@ class Package:
         self.ready_for_delivery = False
         self.delivery_time = None
         self.delivered_on_time = None
+        self.time_checked_in = None
+        self.time_loaded_on_truck = None
+        self.time_delivered = None
 
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
@@ -64,7 +67,8 @@ class Package:
             self.ready_for_delivery = False
 
     def mark_package_loaded(self, truck: 'Truck'):
-        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.get_time()}')
+        self.time_loaded_on_truck = truck.get_time()
+        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {self.time_loaded_on_truck()}')
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):
         self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '
@@ -158,3 +162,6 @@ class PackageCollection:
 
     def remove_priority_1_package(self, package: Package):
         self.priority_1_packages.remove(package)
+
+    def get_num_packages(self):
+        return self.num_packages

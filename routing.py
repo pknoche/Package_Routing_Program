@@ -63,6 +63,15 @@ def generate_single_package_delivery_list(package_list: list[Package]) -> list[P
     return single_address_list
 
 
+def floyd_warshall(adjacency_matrix: list[list[float]]):
+    num_vertices = len(adjacency_matrix)
+    for k in range(num_vertices):
+        for i in range(num_vertices):
+            for j in range(num_vertices):
+                adjacency_matrix[i][j] = min(adjacency_matrix[i][j], adjacency_matrix[i][k] + adjacency_matrix [k][j])
+    return adjacency_matrix
+
+
 def nearest_neighbor(hub: 'Hub', truck: Truck):
     priority_addresses = list(truck.priority_package_manifest.keys())
     current_address = truck.current_address
