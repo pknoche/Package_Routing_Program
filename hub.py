@@ -1,6 +1,3 @@
-from datetime import time
-
-import helper
 import routing
 from address import AddressCollection
 from dev import tests
@@ -67,13 +64,17 @@ class Hub:
                     continue
                 if package.delivery_group:
                     delivery_group_address = package.get_address()
-                    self.load_delivery_group_packages(truck, delivery_group_list, delivery_group_address)
+                    package_removed = \
+                        self.load_delivery_group_packages(truck, delivery_group_list, delivery_group_address)
+                    if not package_removed:  # Only increment i if the method call above did not load a pri_1 package.
+                        i += 1
                 elif package.package_id in self.packages.delivery_binding:
-                    self.load_bound_packages(truck, delivery_group_list)
+                    package_removed = self.load_bound_packages(truck, delivery_group_list)
+                    if not package_removed:  # Only increment i if the method call above did not load a pri_1 package.
+                        i += 1
                 else:
                     truck.load_package(package)
                     self.packages.priority_1_packages.pop(i)
-                i += 1
 
     def load_priority_2_packages(self, truck: Truck, delivery_group_list: dict[str, list[Package]]):
         delivery_groups_loaded = set()
@@ -107,19 +108,25 @@ class Hub:
                     if package.truck_restriction:
                         if package.truck_restriction != truck.truck_id:
                             return  # Do not load bound packages on this truck if any are restricted from current truck.
+            priority_1_package_removed = False
             i = 0
             while i < len(self.packages_ready_for_dispatch):
                 package = self.packages_ready_for_dispatch[i]
                 if delivery_group_list.get(package.get_address()):
-                    self.load_delivery_group_packages(truck, delivery_group_list, package.get_address())
+                    priority_1_package_removed = \
+                        self.load_delivery_group_packages(truck, delivery_group_list, package.get_address())
                 if package.package_id in self.packages.delivery_binding:
+                    if package.package_id in self.packages.priority_1_packages:
+                        priority_1_package_removed = True
                     truck.load_package(self.packages_ready_for_dispatch.pop(i))
                 else:
                     i += 1
+            return priority_1_package_removed
 
     def load_delivery_group_packages(self, truck: Truck, delivery_group_list: dict[str, list[Package]],
                                      delivery_group_address: str = None):
         if delivery_group_address:
+            priority_1_package_removed = False
             packages = delivery_group_list.get(delivery_group_address)
             if len(packages) <= truck.get_remaining_capacity():
                 i = 0
@@ -129,9 +136,11 @@ class Hub:
                     self.packages_ready_for_dispatch.remove(package)
                     if package in self.packages.priority_1_packages:
                         self.packages.priority_1_packages.remove(package)
+                        priority_1_package_removed = True
                 delivery_group_list.pop(delivery_group_address)
+                return priority_1_package_removed
         else:
-            delivery_group_list = routing.generate_delivery_group_list(self.packages_ready_for_dispatch)
+            delivery_groups_loaded = set()
             for address in delivery_group_list:
                 skip_address = False
                 if len(delivery_group_list.get(address)) <= truck.get_remaining_capacity():
@@ -146,13 +155,15 @@ class Hub:
                             self.load_bound_packages(truck, delivery_group_list)
                     while delivery_group_list.get(address) and not skip_address:
                         package_list = delivery_group_list.get(address)
+                        delivery_groups_loaded.add(address)
                         i = 0
                         while i < len(package_list):
                             package = package_list.pop()
                             truck.load_package(package)
                             if package in self.packages_ready_for_dispatch:
                                 self.packages_ready_for_dispatch.remove(package)
-
+            for delivery_group in delivery_groups_loaded:
+                delivery_group_list.pop(delivery_group)
 
     def load_single_packages(self, truck: Truck):
         single_address_list = routing.generate_single_package_delivery_list(self.packages_ready_for_dispatch)

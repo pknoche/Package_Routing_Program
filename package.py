@@ -1,8 +1,6 @@
 import csv
 from typing import Optional, TYPE_CHECKING
 
-import helper
-
 if TYPE_CHECKING:
     from truck import Truck
 
@@ -67,7 +65,6 @@ class Package:
 
     def mark_package_loaded(self, truck: 'Truck'):
         self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {truck.get_time()}')
-
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):
         self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '
