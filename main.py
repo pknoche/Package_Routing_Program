@@ -86,6 +86,8 @@ for truck in hub.trucks.all_trucks:
 
 print(f'Total distance traveled by all trucks: {total_distance_traveled:.1f} miles')
 
+
+
 # print number of packages per truck
 # tests.print_package_manifests(hub)
 

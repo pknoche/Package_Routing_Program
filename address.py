@@ -1,6 +1,8 @@
 import csv
 from typing import Union
 
+import routing
+
 
 class Address:
     def __init__(self, street: str, zipcode: str, index: int):
@@ -41,13 +43,15 @@ class AddressCollection:
         with open(file, newline='') as distances:
             distance_data = csv.reader(distances)
             for distance in distance_data:
+                # convert string from csv to float unless value is blank, in which case append 0.0
                 float_values = [float(d) if d else 0.0 for d in
-                                distance]  # convert string from csv to float unless value is blank, in which case append 0.0
+                                distance]
                 self.adjacency_matrix.append(float_values)
             n = len(self.adjacency_matrix)
             for i in range(n):
                 for j in range(i + 1, n):
                     self.adjacency_matrix[i][j] = self.adjacency_matrix[j][i]
+        self.adjacency_matrix = routing.floyd_warshall(self.adjacency_matrix)
 
     def distance_between(self, address1: str, address2: str) -> float:
         address1 = address1.upper()

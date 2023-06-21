@@ -111,11 +111,7 @@ def calculate_on_time_delivery(hub):
     if all_on_time:
         print('All packages were delivered on time!')
     elif not all_on_time:
-        print('Some packages were delivered late :(')
-
-
-
-
+        print('Some packages were delivered late.')
 
 
 def print_all_tests(hub):
