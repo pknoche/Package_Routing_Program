@@ -26,7 +26,7 @@ def calculate_delivery_groups(package_list: list[Package]):
         if len(packages) > 1:
             delivery_group += 1
             for package in packages:
-                package.delivery_group = delivery_group
+                package.set_delivery_group(delivery_group)
 
 
 def calculate_delivery_priority(package_collection: PackageCollection, package_list: list[Package]):

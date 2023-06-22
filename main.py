@@ -32,12 +32,15 @@ for i in (3, 18, 36, 38):
     hub.packages.search(i).set_truck_restriction(2)
 
 # Group of packages that must be delivered on same truck
-hub.packages.delivery_binding = [13, 14, 15, 16, 19, 20]
+packages_to_bind = {13, 14, 15, 16, 19, 20}
+hub.packages.set_package_binding(packages_to_bind)
 # ----------------------------------------------------------------------------------------------------------------------
 # Run Program
 # Get trucks being used
 truck1 = hub.trucks.all_trucks[0]
 truck2 = hub.trucks.all_trucks[1]
+
+tests.print_all_packages(hub)
 
 # Dispatch first truck
 truck1.set_route_start_time(hour=8, minute=0)
@@ -80,6 +83,7 @@ hub.dispatch_trucks()
 
 # Launch UI
 ui.main_menu(hub)
+
 
 
 # Tests

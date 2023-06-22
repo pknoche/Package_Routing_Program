@@ -43,7 +43,7 @@ class Package:
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Delivery Deadline: {self.deadline}, Status: {self.status}')
+                f'Delivery Deadline: {self.deadline}, Status: {self.status}, Delivery Group: {self.delivery_group}')
 
     def get_address(self) -> str:
         return f'{self.street} {self.zipcode}'
@@ -67,6 +67,9 @@ class Package:
             self.status = self.status_codes.get(status_code)
         if status_code == 5:
             self.ready_for_delivery = False
+
+    def set_delivery_group(self, delivery_group: int):
+        self.delivery_group = delivery_group
 
     def get_status_code(self):
         return self.status_code
@@ -135,7 +138,7 @@ class PackageCollection:
     def __init__(self):
         self.package_table = Hashtable()
         self.num_packages = 0
-        self.delivery_binding = []
+        self.bound_packages = set()
         self.priority_1_packages = []
 
     def import_packages(self, file: str):
@@ -173,6 +176,14 @@ class PackageCollection:
 
     def remove_priority_1_package(self, package: Package):
         self.priority_1_packages.remove(package)
+
+    def set_package_binding(self, package_ids: set[int]):
+        for i in package_ids:
+            package = self.search(i)
+            self.bound_packages.add(package)
+
+    def get_bound_packages(self) -> set[Package]:
+        return self.bound_packages
 
     def get_num_packages(self):
         return self.num_packages
