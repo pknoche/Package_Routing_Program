@@ -1,5 +1,4 @@
 import csv
-from typing import Union
 
 import routing
 

@@ -1,3 +1,5 @@
+from datetime import time
+
 import routing
 from address import AddressCollection
 from dev import tests
@@ -20,20 +22,21 @@ class Hub:
             truck = Truck((i + 1), package_capacity_per_truck, truck_speed, self)
             self.trucks.add_truck(truck)
 
-    def check_in_package(self, package_id: int, status_override: int = None):
-        package = self.packages.package_table.search(package_id)
+    def check_in_package(self, time_scanned: time, package_id: int, status_override: int = None):
+        package = self.packages.search(package_id)
         if status_override:
-            package.set_package_status(status_override)
+            package.set_status(status_override)
         elif self.addresses.address_is_valid(package.get_address()):
-            package.set_package_status(1)
+            package.set_status(1)
             self.packages_ready_for_dispatch.append(package)
         else:
-            package.set_package_status(4)
+            package.set_status(4)
+        package.mark_package_checked_in(time_scanned)
 
     def correct_package_address(self, package_id: int, street: str, city: str, state: str, zipcode: str):
-        package = self.packages.package_table.search(package_id)
+        package = self.packages.search(package_id)
         package.update_address(street, city, state, zipcode)
-        package.set_package_status(1)
+        package.set_status(1)
         self.packages_ready_for_dispatch.append(package)
 
     def load_trucks(self):
@@ -172,11 +175,10 @@ class Hub:
             truck.load_package(package)
             self.packages_ready_for_dispatch.remove(package)
 
-    def calculate_routes(self):  # TODO - remove print statements
+    def calculate_routes(self):
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch:
                 routing.calculate_route(self, truck)
-                tests.print_routes(self)
 
     def dispatch_trucks(self):
         for truck in self.trucks.all_trucks:
@@ -185,3 +187,44 @@ class Hub:
 
     def get_hub_address(self):
         return self.hub_address
+
+    def print_end_of_day_report(self):
+        print('Truck Report:\n')
+        total_miles_traveled = 0
+        for truck in self.trucks.all_trucks:
+            print(f'Truck {truck.get_truck_id()}:')
+            for entry in truck.travel_log:
+                print(entry)
+            total_miles_traveled += truck.get_miles_traveled()
+            print(f'Total distance traveled by truck {truck.get_truck_id()} today: '
+                  f'{truck.get_miles_traveled():.1f} miles.\n')
+        print(f'\nTotal distance traveled by all trucks today: {total_miles_traveled:.1f} miles.\n\n')
+
+        print('Package Report:\n')
+        not_delivered = []
+        late_deliveries = []
+        for package in self.packages.get_all_packages():
+            print(package)
+            if package.get_status_code() != 4:
+                not_delivered.append(package)
+                continue
+            if package.get_on_time_delivery_status() is False:
+                late_deliveries.append(package)
+        print()
+        if not_delivered:
+            all_delivered = False
+        if late_deliveries:
+            all_on_time = False
+        if not not_delivered and not late_deliveries:
+            print('All packages were delivered on time!')
+        else:
+            print('The following packages were not delivered on time:\n')
+        if not_delivered:
+            print('Not Delivered:')
+            for package in not_delivered:
+                print(package)
+            print()
+        if late_deliveries:
+            print('Late Deliveries:')
+            for package in late_deliveries:
+                print(package)
