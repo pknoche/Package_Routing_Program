@@ -1,3 +1,4 @@
+import datetime
 from typing import TYPE_CHECKING
 
 from package import Package, PackageCollection
@@ -30,10 +31,10 @@ def calculate_delivery_groups(package_list: list[Package]):
 
 def calculate_delivery_priority(package_collection: PackageCollection, package_list: list[Package]):
     for package in package_list:
-        if package.deadline == '9:00 AM':
+        if package.deadline == datetime.time(hour=9, minute=0):
             package.priority = 1
             PackageCollection.add_priority_1_package(package_collection, package)
-        elif package.deadline == '10:30 AM':
+        elif package.deadline == datetime.time(hour=10, minute=30):
             package.priority = 2
 
 
@@ -68,7 +69,7 @@ def floyd_warshall(adjacency_matrix: list[list[float]]):
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
-                adjacency_matrix[i][j] = min(adjacency_matrix[i][j], adjacency_matrix[i][k] + adjacency_matrix [k][j])
+                adjacency_matrix[i][j] = min(adjacency_matrix[i][j], adjacency_matrix[i][k] + adjacency_matrix[k][j])
     return adjacency_matrix
 
 

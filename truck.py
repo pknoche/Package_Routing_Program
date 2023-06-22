@@ -1,6 +1,7 @@
 from datetime import time, datetime, timedelta
 from typing import TYPE_CHECKING, Union
 
+import routing
 from package import Package
 
 if TYPE_CHECKING:
@@ -23,14 +24,16 @@ class Truck:
         self.total_miles_traveled = 0.0
         self.hub = hub
         self.speed = speed
-        self.route_start_time = None
+        self.route_start_time: Union[datetime, None] = None
         self.date_time: Union[datetime, None] = None
         self.priority_1_addresses = set()
         self.priority_address_list = set()
+        self.travel_log = []
 
     def load_package(self, package: Package):
         if self.get_remaining_capacity() > 0:
             self.packages_on_truck.add(package)
+            package.mark_package_loaded(self)
             self.num_packages_loaded += 1
         else:
             print('WARNING: truck reached capacity while loading package groups and routes may not be optimal.')
@@ -66,10 +69,13 @@ class Truck:
     def set_ready_for_dispatch(self, value: bool):
         self.is_ready_for_dispatch = value
 
-    def begin_route(self):  # TODO - remove print statements
+    def begin_route(self):
+        route_distance = routing.calculate_route_distance(self.hub, (self.priority_route + self.standard_route))
         self.is_at_hub = False
         self.is_ready_for_dispatch = False
-        print(f'Truck {self.truck_id} left the hub at {self.get_time()}')
+        self.travel_log.append(f'Left the hub at {self.get_time()}')
+        for package in self.packages_on_truck:
+            package.mark_package_out_for_delivery(self)
         for address in self.priority_route:
             starting_address = self.current_address
             miles_traveled = self.hub.addresses.distance_between(self.current_address, address)
@@ -79,8 +85,7 @@ class Truck:
             self.current_address = address
             self.deliver_packages(address)
             if miles_traveled > 0:
-                print(f'Truck {self.truck_id} navigated from {starting_address} to {address} '
-                      f'({miles_traveled:.1f} miles).')
+                self.travel_log.append(f'Navigated from {starting_address} to {address} ({miles_traveled:.1f} miles).')
         for address in self.standard_route:
             starting_address = self.current_address
             miles_traveled = self.hub.addresses.distance_between(self.current_address, address)
@@ -90,10 +95,9 @@ class Truck:
             self.current_address = address
             self.deliver_packages(address)
             if miles_traveled > 0:
-                print(f'Truck {self.truck_id} navigated from {starting_address} to {address} ({miles_traveled} miles).')
+                self.travel_log.append(f'Navigated from {starting_address} to {address} ({miles_traveled:.1f} miles).')
         self.return_to_hub()
-        print(f'Truck {self.truck_id} traveled a total distance of {self.total_miles_traveled:.1f} '
-              f'miles so far today.\n')
+        self.travel_log.append(f'Traveled a total distance of {route_distance:.1f} on this route.\n')
 
     def return_to_hub(self):
         hub_address = self.hub.get_hub_address()
@@ -105,7 +109,7 @@ class Truck:
         self.priority_1_addresses.clear()
         self.is_at_hub = True
         self.is_ready_for_dispatch = False
-        print(f'Truck {self.truck_id} returned to the hub at {self.get_time()}')
+        self.travel_log.append(f'Returned to the hub at {self.get_time()}')
 
     def set_route_start_time(self, hour: int, minute: int):
         date = datetime.today()
@@ -126,6 +130,15 @@ class Truck:
         if self.date_time:
             return self.date_time.time()
 
+    def get_truck_id(self):
+        return self.truck_id
+
+    def get_miles_traveled(self):
+        return self.total_miles_traveled
+
+    def get_route_start_time(self):
+        return self.route_start_time.time()
+
     def add_priority_address(self, address: str):
         self.priority_address_list.add(address)
 
@@ -137,6 +150,7 @@ class Truck:
 
     def set_standard_manifest(self, manifest: dict[str, list[Package]]):
         self.standard_package_manifest = manifest
+
 
 class TruckCollection:
     def __init__(self):

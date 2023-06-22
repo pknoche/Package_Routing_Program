@@ -51,7 +51,7 @@ def print_adjacency_matrix(hub):
 
 def print_all_packages(hub):
     print('Status of all packages:')
-    hub.packages.package_table.print_all_packages()
+    hub.packages.print_all_packages()
     print('\n\n')
 
 
@@ -65,7 +65,7 @@ def print_hash_table(hub):
     print()
 
 
-def print_routes(hub):
+def print_routes(hub):  # Call from calculate_routes method in hub file
     for truck in hub.trucks.all_trucks:
         print(
             f'Truck {truck.truck_id} priority route: {truck.priority_route}\n'
@@ -91,20 +91,19 @@ def print_routes(hub):
 
 def calculate_on_time_delivery(hub):
     time_format = '%I:%M %p'
-    for package in hub.packages.package_table.get_all_packages():
+    for package in hub.packages.get_all_packages():
         if package.deadline == 'EOD':
             if package.status_code == 4:
                 package.delivered_on_time = True
         else:
             deadline = package.deadline
-            deadline_time = datetime.strptime(deadline, time_format).time()
-            if package.delivery_time:
-                if deadline_time < package.delivery_time:
+            if package.time_delivered:
+                if deadline < package.time_delivered:
                     package.delivered_on_time = False
                 else:
                     package.delivered_on_time = True
     all_on_time = True
-    for package in hub.packages.package_table.get_all_packages():
+    for package in hub.packages.get_all_packages():
         if not package.delivered_on_time:
             all_on_time = False
             break

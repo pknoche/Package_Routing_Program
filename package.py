@@ -1,5 +1,7 @@
+import copy
 import csv
-from typing import Optional, TYPE_CHECKING
+from datetime import time, datetime
+from typing import Optional, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
     from truck import Truck
@@ -31,17 +33,17 @@ class Package:
         self.status_code = status_code
         self.status = self.status_codes.get(self.status_code)
         self.ready_for_delivery = False
-        self.delivery_time = None
-        self.delivered_on_time = None
+        self.truck = None
+        self.delivered_on_time: Union[bool, None] = None
         self.time_checked_in = None
         self.time_loaded_on_truck = None
+        self.time_out_for_delivery = None
         self.time_delivered = None
 
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Status: {self.status}, Delivery Deadline: {self.deadline}, Delivery Time: {self.delivery_time}, '
-                f'Delivered On Time: {self.delivered_on_time}')
+                f'Delivery Deadline: {self.deadline}, Status: {self.status}')
 
     def get_address(self) -> str:
         return f'{self.street} {self.zipcode}'
@@ -55,7 +57,7 @@ class Package:
     def set_truck_restriction(self, truck_id: int):
         self.truck_restriction = truck_id
 
-    def set_package_status(self, status_code: int, status: str = None):
+    def set_status(self, status_code: int, status: str = None):
         self.status_code = status_code
         if self.status_code == 1:
             self.ready_for_delivery = True
@@ -66,18 +68,35 @@ class Package:
         if status_code == 5:
             self.ready_for_delivery = False
 
+    def get_status_code(self):
+        return self.status_code
+
+    def get_on_time_delivery_status(self):
+        return self.delivered_on_time
+
+    def mark_package_checked_in(self, time_scanned: time):
+        self.time_checked_in = time_scanned
+
     def mark_package_loaded(self, truck: 'Truck'):
+        self.truck = truck.get_truck_id()
         self.time_loaded_on_truck = truck.get_time()
-        self.set_package_status(2, f'Loaded on truck {truck.truck_id} at {self.time_loaded_on_truck()}')
+        self.set_status(2, f'Loaded on truck {truck.truck_id} at {self.time_loaded_on_truck}')
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):
-        self.set_package_status(3, f'Out for delivery on truck {truck.truck_id} at '
-                                   f'{truck.get_time()}')
+        self.time_out_for_delivery = truck.get_time()
+        self.set_status(3, f'Out for delivery on truck {truck.truck_id} at {self.time_out_for_delivery}')
 
     def mark_package_delivered(self, truck: 'Truck'):
-        self.set_package_status(4, f'Delivered by truck {truck.truck_id} at '
-                                   f'{truck.get_time()}')
-        self.delivery_time = truck.get_time()
+        self.time_delivered = truck.get_time()
+        if self.deadline != 'EOD':
+            if self.time_delivered > self.deadline:
+                self.delivered_on_time = False
+            else:
+                self.delivered_on_time = True
+        else:
+            self.delivered_on_time = True
+
+        self.set_status(4, f'Delivered by truck {truck.truck_id} at {self.time_delivered}')
 
 
 class Hashtable:
@@ -102,7 +121,6 @@ class Hashtable:
 
     def update(self, key: int, index: int, package: Package):
         self.table[key][index] = package
-        print(f'Updated package is: {package}')  # TODO - remove
 
     def search(self, package_id: int) -> Optional[Package]:
         key = self.hash(package_id)
@@ -111,18 +129,6 @@ class Hashtable:
             if package.package_id == package_id:
                 return package
         return None
-
-    def get_all_packages(self) -> list[Package]:
-        all_packages = []
-        for bucket in self.table:
-            for package in bucket:
-                all_packages.append(package)
-        all_packages.sort(key=lambda p: p.package_id)
-        return all_packages
-
-    def print_all_packages(self):
-        for package in self.get_all_packages():
-            print(package)
 
 
 class PackageCollection:
@@ -144,6 +150,8 @@ class PackageCollection:
                 state = package[3].strip().upper()
                 zipcode = package[4].strip()
                 deadline = package[5].strip()
+                if deadline != 'EOD':
+                    deadline = datetime.strptime(deadline, '%I:%M %p').time()
                 mass = float(package[6].strip())
                 notes = package[7].strip()
                 address = address.replace('NORTH', 'N')
@@ -153,9 +161,12 @@ class PackageCollection:
                 new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
                 self.package_table.insert(new_package)
                 self.num_packages += 1
-            package_list = self.package_table.get_all_packages()
+            package_list = self.get_all_packages()
             calculate_delivery_groups(package_list)
             calculate_delivery_priority(self, package_list)
+
+    def search(self, package_id: int):
+        return self.package_table.search(package_id)
 
     def add_priority_1_package(self, package: Package):
         self.priority_1_packages.append(package)
@@ -165,3 +176,93 @@ class PackageCollection:
 
     def get_num_packages(self):
         return self.num_packages
+
+    def get_all_packages(self) -> list[Package]:
+        all_packages = []
+        for bucket in self.package_table.table:
+            for package in bucket:
+                all_packages.append(package)
+        all_packages.sort(key=lambda p: p.package_id)
+        return all_packages
+
+    def print_all_packages(self):
+        for package in self.get_all_packages():
+            print(package)
+
+    def print_all_packages_at_time(self, time_input: time):
+        # Make copy of packages so status can be modified for printing at snapshot in time without losing original data.
+        all_packages = copy.deepcopy(self.get_all_packages())
+        not_yet_arrived = []
+        at_hub = []
+        loaded_on_truck = []
+        out_for_delivery = []
+        delivered = []
+        for package in all_packages:
+            if package.time_checked_in > time_input:
+                package.set_status(0)
+                not_yet_arrived.append(package)
+            elif package.time_loaded_on_truck > time_input:
+                package.set_status(1, f'Arrived at hub at {package.time_checked_in}')
+                at_hub.append(package)
+            elif package.time_out_for_delivery > time_input:
+                package.set_status(2, f'Loaded on truck {package.truck} at {package.time_loaded_on_truck}')
+                loaded_on_truck.append(package)
+            elif package.time_delivered > time_input:
+                package.set_status(2, f'Out for delivery on truck {package.truck} at '
+                                      f'{package.time_out_for_delivery}')
+                out_for_delivery.append(package)
+            else:
+                package.set_status(2, f'Delivered by truck {package.truck} at {package.time_delivered}')
+                delivered.append(package)
+        print(f'Status Of All Packages As Of {time_input.strftime("%H:%M")}:')
+        print('Not Yet Arrived At Hub:')
+        if not_yet_arrived:
+            for package in not_yet_arrived:
+                print(package)
+            print()
+        else:
+            print('None\n')
+        print('At Hub:')
+        if at_hub:
+            for package in at_hub:
+                print(package)
+            print()
+        else:
+            print('None\n')
+        print('Loaded On Truck At Hub:')
+        if loaded_on_truck:
+            for package in loaded_on_truck:
+                print(package)
+            print()
+        else:
+            print('None\n')
+        print('Out For Delivery:')
+        if out_for_delivery:
+            for package in out_for_delivery:
+                print(package)
+            print()
+        else:
+            print('None\n')
+        print('Delivered:')
+        if delivered:
+            for package in delivered:
+                print(package)
+            print()
+        else:
+            print('None\n')
+
+    def print_single_package_at_time(self, package_id: int, time_input: time):
+        package = self.search(package_id)
+        if package.time_checked_in > time_input:
+            package.set_status(0)
+        elif package.time_loaded_on_truck > time_input:
+            package.set_status(1, f'Arrived at hub at {package.time_checked_in}')
+        elif package.time_out_for_delivery > time_input:
+            package.set_status(2, f'Loaded on truck {package.truck} at {package.time_loaded_on_truck}')
+        elif package.time_delivered > time_input:
+            package.set_status(2, f'Out for delivery on truck {package.truck} at '
+                                  f'{package.time_out_for_delivery}')
+        else:
+            package.set_status(2, f'Delivered by truck {package.truck} at {package.time_delivered}')
+        print(f'Status Of Package {package.package_id} As Of {time_input.strftime("%H:%M")}:')
+        print(package)
