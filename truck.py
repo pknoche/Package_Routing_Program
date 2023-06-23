@@ -74,6 +74,9 @@ class Truck:
 
     def begin_route(self):
         route_distance = routing.calculate_route_distance(self.hub, (self.priority_route + self.standard_route))
+        if route_distance == 0:
+            self.is_ready_for_dispatch = False
+            return
         self.is_at_hub = False
         self.is_ready_for_dispatch = False
         self.travel_log.append(f'Left the hub at {self.get_time()}')
