@@ -11,8 +11,8 @@ if TYPE_CHECKING:
 class Truck:
     def __init__(self, truck_id: int, package_capacity: int, speed: float, hub: 'Hub'):
         self.truck_id = truck_id
-        self.priority_package_manifest: dict[str, list[Package]] = {}
-        self.standard_package_manifest: dict[str, list[Package]] = {}
+        self.priority_package_manifest: dict[str, set[Package]] = {}
+        self.standard_package_manifest: dict[str, set[Package]] = {}
         self.packages_on_truck = set()
         self.priority_route = []
         self.standard_route = []
@@ -27,7 +27,7 @@ class Truck:
         self.route_start_time: Union[datetime, None] = None
         self.date_time: Union[datetime, None] = None
         self.priority_1_addresses = set()
-        self.priority_address_list = set()
+        self.all_priority_addresses = set()
         self.travel_log = []
 
     def load_package(self, package: Package):
@@ -103,7 +103,7 @@ class Truck:
             if miles_traveled > 0:
                 self.travel_log.append(f'Navigated from {starting_address} to {address} ({miles_traveled:.1f} miles).')
         self.return_to_hub()
-        self.travel_log.append(f'Traveled a total distance of {route_distance:.1f} on this route.\n')
+        self.travel_log.append(f'Traveled a total distance of {route_distance:.1f} miles on this route.\n')
 
     def return_to_hub(self):
         hub_address = self.hub.get_hub_address()
@@ -146,10 +146,10 @@ class Truck:
         return self.route_start_time.time()
 
     def add_priority_address(self, address: str):
-        self.priority_address_list.add(address)
+        self.all_priority_addresses.add(address)
 
-    def get_priority_address_list(self) -> set[str]:
-        return self.priority_address_list
+    def get_priority_addresses(self) -> set[str]:
+        return self.all_priority_addresses
 
     def set_priority_manifest(self, manifest: dict[str, set[Package]]):
         self.priority_package_manifest = manifest

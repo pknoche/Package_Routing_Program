@@ -40,7 +40,6 @@ hub.packages.set_package_binding(packages_to_bind)
 truck1 = hub.trucks.all_trucks[0]
 truck2 = hub.trucks.all_trucks[1]
 
-
 # Dispatch first truck
 truck1.set_route_start_time(hour=8, minute=0)
 truck1.set_ready_for_dispatch(True)
@@ -48,22 +47,13 @@ hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
 
-# Dispatch truck 2 for priority 1 deliveries if there are any.
-if hub.packages.priority_1_packages:
-    truck2.set_route_start_time(hour=8, minute=0)
-    truck2.set_ready_for_dispatch(True)
-    hub.load_trucks()
-    hub.calculate_routes()
-    hub.dispatch_trucks()
-
 # Check in late packages
 time_scanned = datetime.strptime('9:05', '%H:%M').time()
 for i in (6, 25, 28, 32):
     hub.check_in_package(time_scanned, i)
 
-# Dispatch Truck 2 and set route start time if it did not deliver priority 1 packages earlier.
-if not truck2.route_start_time:
-    truck2.set_route_start_time(hour=9, minute=5)
+# Dispatch second truck
+truck2.set_route_start_time(hour=9, minute=5)
 truck2.set_ready_for_dispatch(True)
 hub.load_trucks()
 hub.calculate_routes()
@@ -71,22 +61,15 @@ hub.dispatch_trucks()
 
 # Dispatch final truck after package 9 address is updated
 # Set time of truck to package update time if truck returned to hub before update time.
-if truck1.is_at_hub and truck1.get_time() < package_9_address_update_time:
-    truck1.set_current_time(package_9_address_update_time)
+if truck2.is_at_hub and truck2.get_time() < package_9_address_update_time:
+    truck2.set_current_time(package_9_address_update_time)
 
-# Update package 9 address and status.
-hub.correct_package_address(9, '410 S STATE ST', 'SALT LAKE CITY', 'UT', '84111')
-truck1.set_ready_for_dispatch(True)
-hub.load_trucks()
-hub.calculate_routes()
-hub.dispatch_trucks()
-
-truck1.set_ready_for_dispatch(True)
+# Update package 9 address and status and dispatch final truck
+hub.correct_package_address(package_id=9, street='410 S STATE ST', city='SALT LAKE CITY', state='UT', zipcode='84111')
 truck2.set_ready_for_dispatch(True)
 hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
-
 
 # Tests
 tests.print_bound_packages(hub)
@@ -95,7 +78,3 @@ tests.print_packages_by_delivery_groups(hub)
 
 # Launch UI
 ui.main_menu(hub)
-
-
-
-

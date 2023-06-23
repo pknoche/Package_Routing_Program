@@ -43,7 +43,7 @@ class Package:
     def __str__(self) -> str:
         return (f'ID: {self.package_id}, Address: {self.street}, City: {self.city}, State: {self.state}, '
                 f'Zip: {self.zipcode}, Mass(kg): {self.mass}, Notes: {self.notes}, '
-                f'Delivery Deadline: {self.deadline}, Status: {self.status}, Delivery Group: {self.delivery_group}')
+                f'Delivery Deadline: {self.deadline}, Status: {self.status}')
 
     def get_address(self) -> str:
         return f'{self.street} {self.zipcode}'
@@ -165,9 +165,9 @@ class PackageCollection:
                 new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
                 self.package_table.insert(new_package)
                 self.num_packages += 1
-            package_list = set(self.get_all_packages())
-            calculate_delivery_groups(package_list)
-            calculate_delivery_priority(self, package_list)
+            packages = set(self.get_all_packages())
+            calculate_delivery_groups(packages)
+            calculate_delivery_priority(self, packages)
 
     def search(self, package_id: int):
         return self.package_table.search(package_id)
