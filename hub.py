@@ -41,43 +41,43 @@ class Hub:
     def load_trucks(self):
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch and truck.get_remaining_capacity() > 0:
-                delivery_group_list = routing.generate_delivery_group_list(self.packages_ready_for_dispatch)
-                self.load_priority_packages(truck, delivery_group_list, priority_num=1)
+                delivery_group_dict = routing.generate_delivery_group_dict(self.packages_ready_for_dispatch)
+                self.load_priority_packages(truck, delivery_group_dict, priority_num=1)
                 if truck.get_remaining_capacity() > 0:
-                    self.load_priority_packages(truck, delivery_group_list, priority_num=2)
+                    self.load_priority_packages(truck, delivery_group_dict, priority_num=2)
                 if truck.get_remaining_capacity() > 0:
-                    self.load_group_packages(truck, self.packages_ready_for_dispatch, delivery_group_list)
+                    self.load_group_packages(truck, self.packages_ready_for_dispatch, delivery_group_dict)
                 if truck.get_remaining_capacity() > 0:
                     self.load_bound_packages(truck)
                 if truck.get_remaining_capacity() > 0:
                     self.load_single_packages(truck)
 
                 packages_on_truck = truck.get_packages().copy()
-                priority_manifest = routing.generate_priority_list(packages_on_truck)
+                priority_manifest = routing.generate_priority_dict(packages_on_truck)
                 for address, packages in priority_manifest.items():
                     for package in packages:
                         packages_on_truck.remove(package)
-                standard_manifest = routing.generate_address_list(packages_on_truck)
+                standard_manifest = routing.generate_address_dict(packages_on_truck)
                 truck.set_priority_manifest(priority_manifest)
                 truck.set_standard_manifest(standard_manifest)
 
-    def load_priority_packages(self, truck: Truck, delivery_group_list: dict[str, list[Package]], priority_num: int):
-        priority_package_list = None
+    def load_priority_packages(self, truck: Truck, delivery_group_dict: dict[str, set[Package]], priority_num: int):
+        priority_packages = None
         if priority_num == 1:
-            priority_package_list = self.packages.get_priority_1_packages()
+            priority_packages = self.packages.get_priority_1_packages()
         elif priority_num == 2:
-            priority_package_list = self.packages.get_priority_2_packages()
-        if priority_package_list:
-            packages_loaded = self.load_group_packages(truck, priority_package_list, delivery_group_list)
+            priority_packages = self.packages.get_priority_2_packages()
+        if priority_packages:
+            packages_loaded = self.load_group_packages(truck, priority_packages, delivery_group_dict)
             for package in packages_loaded:
-                if package in priority_package_list:
-                    priority_package_list.remove(package)
+                if package in priority_packages:
+                    priority_packages.remove(package)
 
     #  "group" in the context of this function name refers to any type of package group,
     #  whether that be priority 1 packages, priority 2 packages, or packages assigned to a delivery group, which is
     #  defined in terms of an address when a package shares this address with one or more other packages.
     def load_group_packages(self, truck: Truck, package_group: set[Package],
-                            delivery_group_list: dict[str, list[Package]]):
+                            delivery_group_dict: dict[str, set[Package]]):
         packages_loaded = set()
         bound_packages_loaded_addresses = {}
         for package in package_group:
@@ -87,13 +87,12 @@ class Hub:
                     continue
                 truck.load_package(package)
                 packages_loaded.add(package)
-        sorted_package_group_keys_by_size = sorted(delivery_group_list, key=lambda x: len(delivery_group_list[x]))
+        sorted_package_group_keys_by_size = sorted(delivery_group_dict, key=lambda x: len(delivery_group_dict[x]))
         for package_group_key in sorted_package_group_keys_by_size:
-            for package in delivery_group_list[package_group_key]:
-                if package not in package_group:
-                    continue
-                if package.truck_restriction and package.truck_restriction != truck.truck_id:
-                    continue
+            if any(package.truck_restriction and package.truck_restriction != truck.truck_id or
+                   package not in package_group for package in delivery_group_dict[package_group_key]):
+                continue
+            for package in delivery_group_dict[package_group_key]:
                 if package in self.packages.get_bound_packages():
                     bound_packages = self.packages.get_bound_packages()
                     if len(bound_packages) <= truck.get_remaining_capacity():
@@ -101,7 +100,7 @@ class Hub:
                             truck.load_package(bound_package)
                             packages_loaded.add(bound_package)
                             package_address = bound_package.get_address()
-                            if package_address in delivery_group_list:
+                            if package_address in delivery_group_dict:
                                 if package_address not in bound_packages_loaded_addresses:
                                     bound_packages_loaded_addresses[package_address] = []
                                     bound_packages_loaded_addresses[package_address].append(bound_package)
@@ -110,15 +109,14 @@ class Hub:
                     if bound_packages_loaded_addresses:
                         for address in bound_packages_loaded_addresses:
                             num_packages = len(bound_packages_loaded_addresses[address])
-                            if len(delivery_group_list.get(address)) - num_packages <= truck.get_remaining_capacity():
-                                for grouped_package in delivery_group_list.get(address):
+                            if len(delivery_group_dict.get(address)) - num_packages <= truck.get_remaining_capacity():
+                                for grouped_package in delivery_group_dict.get(address):
                                     truck.load_package(grouped_package)
-                                    print(f'Package {grouped_package.package_id} loaded.')
                                     packages_loaded.add(grouped_package)
                 else:
                     if package.delivery_group and len(
-                            delivery_group_list[package.get_address()]) <= truck.get_remaining_capacity():
-                        delivery_group = delivery_group_list.get(package.get_address())
+                            delivery_group_dict[package.get_address()]) <= truck.get_remaining_capacity():
+                        delivery_group = delivery_group_dict.get(package.get_address())
                         for grouped_package in delivery_group:
                             truck.load_package(grouped_package)
                             packages_loaded.add(grouped_package)
@@ -126,10 +124,10 @@ class Hub:
             bound_packages = self.packages.get_bound_packages()
             for package in bound_packages:
                 address = package.get_address()
-                if address in delivery_group_list:
-                    delivery_group_package_list = delivery_group_list[address]
-                    delivery_group_package_list.remove(package)
-        self.remove_from_dispatch_list(packages_loaded, delivery_group_list)
+                if address in delivery_group_dict:
+                    delivery_group_packages = delivery_group_dict[address]
+                    delivery_group_packages.remove(package)
+        self.remove_from_dispatch_list(packages_loaded, delivery_group_dict)
         return packages_loaded
 
     def load_bound_packages(self, truck: Truck):
@@ -147,29 +145,29 @@ class Hub:
         self.remove_from_dispatch_list(bound_packages_loaded)
 
     def load_single_packages(self, truck: Truck):
-        single_package_list = routing.generate_single_package_delivery_list(self.packages_ready_for_dispatch)
+        single_packages = routing.generate_single_package_delivery_set(self.packages_ready_for_dispatch)
         packages_loaded = set()
-        while truck.get_remaining_capacity() > 0 and len(single_package_list) > 0:
-            package = next(iter(single_package_list))
+        while truck.get_remaining_capacity() > 0 and len(single_packages) > 0:
+            package = next(iter(single_packages))
             if package.truck_restriction:
                 if package.truck_restriction != truck.truck_id:
-                    single_package_list.remove(package)
+                    single_packages.remove(package)
                     continue
             truck.load_package(package)
             packages_loaded.add(package)
-            single_package_list.remove(package)
+            single_packages.remove(package)
         self.remove_from_dispatch_list(packages_loaded)
 
-    def remove_from_dispatch_list(self, packages: set[Package], delivery_group_list: dict[str, list[Package]] = None):
+    def remove_from_dispatch_list(self, packages: set[Package], delivery_group_dict: dict[str, set[Package]] = None):
         for package in packages:
             self.packages_ready_for_dispatch.remove(package)
             address = package.get_address()
-            if not delivery_group_list:
+            if not delivery_group_dict:
                 continue
-            if address in delivery_group_list:
-                package_list = delivery_group_list.get(address)
-                if package in package_list:
-                    package_list.remove(package)
+            if address in delivery_group_dict:
+                packages = delivery_group_dict.get(address)
+                if package in packages:
+                    packages.remove(package)
 
     def calculate_routes(self):
         for truck in self.trucks.all_trucks:
