@@ -40,19 +40,19 @@ hub.packages.set_package_binding(packages_to_bind)
 truck1 = hub.trucks.all_trucks[0]
 truck2 = hub.trucks.all_trucks[1]
 
-tests.print_all_packages(hub)
 
 # Dispatch first truck
 truck1.set_route_start_time(hour=8, minute=0)
 truck1.set_ready_for_dispatch(True)
+truck1.set_route_start_time(hour=8, minute=0)
 hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
 
 # Dispatch truck 2 for priority 1 deliveries if there are any.
 if hub.packages.priority_1_packages:
-    truck2.set_route_start_time(hour=8, minute=0)
-    truck2.set_ready_for_dispatch(True)
+    truck1.set_route_start_time(hour=8, minute=0)
+    truck1.set_ready_for_dispatch(True)
     hub.load_trucks()
     hub.calculate_routes()
     hub.dispatch_trucks()
@@ -61,6 +61,7 @@ if hub.packages.priority_1_packages:
 time_scanned = datetime.strptime('9:05', '%H:%M').time()
 for i in (6, 25, 28, 32):
     hub.check_in_package(time_scanned, i)
+
 # Dispatch Truck 2 and set route start time if it did not deliver priority 1 packages earlier.
 if not truck2.route_start_time:
     truck2.set_route_start_time(hour=9, minute=5)
@@ -76,14 +77,26 @@ if truck1.is_at_hub and truck1.get_time() < package_9_address_update_time:
 
 # Update package 9 address and status.
 hub.correct_package_address(9, '410 S STATE ST', 'SALT LAKE CITY', 'UT', '84111')
+truck1.set_ready_for_dispatch(True)
+hub.load_trucks()
+hub.calculate_routes()
+hub.dispatch_trucks()
+
+truck1.set_ready_for_dispatch(True)
 truck2.set_ready_for_dispatch(True)
 hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
+
+
+# Tests
+tests.print_bound_packages(hub)
+print()
+tests.print_packages_by_delivery_groups(hub)
 
 # Launch UI
 ui.main_menu(hub)
 
 
 
-# Tests
+

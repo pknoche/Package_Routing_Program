@@ -139,7 +139,8 @@ class PackageCollection:
         self.package_table = Hashtable()
         self.num_packages = 0
         self.bound_packages = set()
-        self.priority_1_packages = []
+        self.priority_1_packages = set()
+        self.priority_2_packages = set()
 
     def import_packages(self, file: str):
         from routing import calculate_delivery_groups, calculate_delivery_priority
@@ -164,7 +165,7 @@ class PackageCollection:
                 new_package = Package(package_id, address, city, state, zipcode, deadline, mass, notes)
                 self.package_table.insert(new_package)
                 self.num_packages += 1
-            package_list = self.get_all_packages()
+            package_list = set(self.get_all_packages())
             calculate_delivery_groups(package_list)
             calculate_delivery_priority(self, package_list)
 
@@ -172,10 +173,22 @@ class PackageCollection:
         return self.package_table.search(package_id)
 
     def add_priority_1_package(self, package: Package):
-        self.priority_1_packages.append(package)
+        self.priority_1_packages.add(package)
 
     def remove_priority_1_package(self, package: Package):
         self.priority_1_packages.remove(package)
+
+    def get_priority_1_packages(self) -> set[Package]:
+        return self.priority_1_packages
+
+    def add_priority_2_package(self, package: Package):
+        self.priority_2_packages.add(package)
+
+    def remove_priority_2_package(self, package: Package):
+        self.priority_2_packages.remove(package)
+
+    def get_priority_2_packages(self) -> set[Package]:
+        return self.priority_2_packages
 
     def set_package_binding(self, package_ids: set[int]):
         for i in package_ids:
