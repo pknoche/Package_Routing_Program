@@ -44,15 +44,14 @@ truck2 = hub.trucks.all_trucks[1]
 # Dispatch first truck
 truck1.set_route_start_time(hour=8, minute=0)
 truck1.set_ready_for_dispatch(True)
-truck1.set_route_start_time(hour=8, minute=0)
 hub.load_trucks()
 hub.calculate_routes()
 hub.dispatch_trucks()
 
 # Dispatch truck 2 for priority 1 deliveries if there are any.
 if hub.packages.priority_1_packages:
-    truck1.set_route_start_time(hour=8, minute=0)
-    truck1.set_ready_for_dispatch(True)
+    truck2.set_route_start_time(hour=8, minute=0)
+    truck2.set_ready_for_dispatch(True)
     hub.load_trucks()
     hub.calculate_routes()
     hub.dispatch_trucks()

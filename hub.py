@@ -80,6 +80,13 @@ class Hub:
                             delivery_group_list: dict[str, list[Package]]):
         packages_loaded = set()
         bound_packages_loaded_addresses = {}
+        for package in package_group:
+            if package.priority and package.status_code == 1 and not package.delivery_group and \
+                    package not in self.packages.get_bound_packages():
+                if package.truck_restriction and package.truck_restriction != truck.truck_id:
+                    continue
+                truck.load_package(package)
+                packages_loaded.add(package)
         sorted_package_group_keys_by_size = sorted(delivery_group_list, key=lambda x: len(delivery_group_list[x]))
         for package_group_key in sorted_package_group_keys_by_size:
             for package in delivery_group_list[package_group_key]:
@@ -106,7 +113,8 @@ class Hub:
                             if len(delivery_group_list.get(address)) - num_packages <= truck.get_remaining_capacity():
                                 for grouped_package in delivery_group_list.get(address):
                                     truck.load_package(grouped_package)
-                                    packages_loaded.add(package)
+                                    print(f'Package {grouped_package.package_id} loaded.')
+                                    packages_loaded.add(grouped_package)
                 else:
                     if package.delivery_group and len(
                             delivery_group_list[package.get_address()]) <= truck.get_remaining_capacity():
@@ -114,9 +122,6 @@ class Hub:
                         for grouped_package in delivery_group:
                             truck.load_package(grouped_package)
                             packages_loaded.add(grouped_package)
-                    elif not package.delivery_group and package.priority:
-                        truck.load_package(package)
-                        packages_loaded.add(package)
         if bound_packages_loaded_addresses:
             bound_packages = self.packages.get_bound_packages()
             for package in bound_packages:
@@ -128,6 +133,7 @@ class Hub:
         return packages_loaded
 
     def load_bound_packages(self, truck: Truck):
+        bound_packages_loaded = set()
         bound_packages = self.packages.get_bound_packages()
         if len(bound_packages) > truck.get_remaining_capacity():
             return
@@ -137,7 +143,8 @@ class Hub:
                 return
         for package in bound_packages:
             truck.load_package(package)
-            self.packages_ready_for_dispatch.remove(package)
+            bound_packages_loaded.add(package)
+        self.remove_from_dispatch_list(bound_packages_loaded)
 
     def load_single_packages(self, truck: Truck):
         single_package_list = routing.generate_single_package_delivery_list(self.packages_ready_for_dispatch)

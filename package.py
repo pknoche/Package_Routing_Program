@@ -228,7 +228,7 @@ class PackageCollection:
             elif package.time_loaded_on_truck > time_input:
                 package.set_status(1, f'Arrived at hub at {package.time_checked_in}')
                 at_hub.append(package)
-            elif package.time_out_for_delivery > time_input:
+            elif package.time_out_for_delivery > time_input:  # TODO - consider deleting loaded on truck status
                 package.set_status(2, f'Loaded on truck {package.truck} at {package.time_loaded_on_truck}')
                 loaded_on_truck.append(package)
             elif package.time_delivered > time_input:

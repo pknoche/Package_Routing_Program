@@ -156,8 +156,7 @@ def two_opt_standard(hub: 'Hub', truck: Truck):
 
 
 def calculate_route_distance(hub: 'Hub', route: list[str]) -> float:
-    distance = sum(hub.addresses.distance_between(route[i], route[i + 1])
-                   for i in range(len(route) - 1))
+    distance = sum(hub.addresses.distance_between(route[i], route[i + 1]) for i in range(len(route) - 1))
     return distance
 
 

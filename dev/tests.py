@@ -130,6 +130,7 @@ def calculate_on_time_delivery(hub):
 
 
 def print_bound_packages(hub):
+    print('Bound Packages:')
     for package in hub.packages.get_bound_packages():
         print(package)
 
