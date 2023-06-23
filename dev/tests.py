@@ -65,6 +65,22 @@ def print_hash_table(hub):
     print()
 
 
+def print_packages_by_delivery_groups(hub):
+    delivery_groups = {}
+    for package in hub.packages.get_all_packages():
+        group_number = package.delivery_group
+        if group_number in delivery_groups:
+            delivery_groups[group_number].append(package)
+        else:
+            delivery_groups[group_number] = [package]
+
+    for delivery_group, packages in delivery_groups.items():
+        print(f'Delivery Group {delivery_group}:')
+        for package in packages:
+            print(package)
+        print()
+
+
 def print_routes(hub):  # Call from calculate_routes method in hub file
     for truck in hub.trucks.all_trucks:
         print(
@@ -111,6 +127,11 @@ def calculate_on_time_delivery(hub):
         print('All packages were delivered on time!')
     elif not all_on_time:
         print('Some packages were delivered late.')
+
+
+def print_bound_packages(hub):
+    for package in hub.packages.get_bound_packages():
+        print(package)
 
 
 def print_all_tests(hub):

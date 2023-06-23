@@ -8,59 +8,63 @@ if TYPE_CHECKING:
     from hub import Hub
 
 
-def generate_address_list(package_list: list[Package]) -> dict[str, list[Package]]:
+def generate_address_list(package_list: set[Package]) -> dict[str, set[Package]]:
     packages_by_address = {}
     for package in package_list:
         address = package.get_address()
         if address in packages_by_address:
-            packages_by_address[address].append(package)
+            packages_by_address[address].add(package)
         else:
-            packages_by_address[address] = [package]
+            packages_by_address[address] = {package}
     return packages_by_address
 
 
-def calculate_delivery_groups(package_list: list[Package]):
+def calculate_delivery_groups(package_list: set[Package]):
     delivery_group = 0
     packages_by_address = generate_address_list(package_list)
     for address, packages in packages_by_address.items():
         if len(packages) > 1:
             delivery_group += 1
             for package in packages:
-                package.delivery_group = delivery_group
+                package.set_delivery_group(delivery_group)
 
 
-def calculate_delivery_priority(package_collection: PackageCollection, package_list: list[Package]):
+def calculate_delivery_priority(package_collection: PackageCollection, package_list: set[Package]):
     for package in package_list:
         if package.deadline == datetime.time(hour=9, minute=0):
             package.priority = 1
             PackageCollection.add_priority_1_package(package_collection, package)
         elif package.deadline == datetime.time(hour=10, minute=30):
             package.priority = 2
+            PackageCollection.add_priority_2_package(package_collection, package)
 
 
-def generate_priority_list(package_list: list[Package]) -> dict[str, list[Package]]:
-    priority_list = []
-    delivery_groups = []
+def generate_priority_list(package_list: set[Package]) -> dict[str, set[Package]]:
+    priority_list = set()
+    delivery_groups = set()
     for package in package_list:
         if package.priority:
-            priority_list.append(package)
+            priority_list.add(package)
         if package.delivery_group and package.delivery_group not in delivery_groups:
-            delivery_groups.append(package.delivery_group)
+            delivery_groups.add(package.delivery_group)
     for package in package_list:
-        if package.delivery_group in delivery_groups and package not in priority_list and priority_list:
-            priority_list.append(package)
+        if priority_list and package.delivery_group in delivery_groups and package not in priority_list:
+            priority_list.add(package)
     return generate_address_list(priority_list)
 
 
-def generate_delivery_group_list(package_list: list[Package]) -> dict[str, list[Package]]:
+def generate_delivery_group_list(package_list: set[Package]) -> dict[str, list[Package]]:
     all_address_list = generate_address_list(package_list)
     delivery_group_list = {address: packages for address, packages in all_address_list.items() if len(packages) > 1}
     return delivery_group_list
 
 
-def generate_single_package_delivery_list(package_list: list[Package]) -> list[Package]:
+def generate_single_package_delivery_list(package_list: set[Package]) -> set[Package]:
     all_address_list = generate_address_list(package_list)
-    single_address_list = [packages[0] for packages in all_address_list.values() if len(packages) == 1]
+    single_address_list = set()
+    for packages in all_address_list.values():
+        if len(packages) == 1:
+            single_address_list.add(next(iter(packages)))
     return single_address_list
 
 

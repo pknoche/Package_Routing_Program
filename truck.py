@@ -34,7 +34,7 @@ class Truck:
         if self.get_remaining_capacity() > 0:
             self.packages_on_truck.add(package)
             package.mark_package_loaded(self)
-            self.num_packages_loaded += 1
+            self.num_packages_loaded = len(self.packages_on_truck)
         else:
             print('WARNING: truck reached capacity while loading package groups and routes may not be optimal.')
 
@@ -59,6 +59,9 @@ class Truck:
 
     def get_remaining_capacity(self):
         return self.package_capacity - self.num_packages_loaded
+
+    def get_packages(self) -> set[Package]:
+        return self.packages_on_truck
 
     def set_priority_route(self, route: list[str]):
         self.priority_route = route
@@ -145,10 +148,10 @@ class Truck:
     def get_priority_address_list(self) -> set[str]:
         return self.priority_address_list
 
-    def set_priority_manifest(self, manifest: dict[str, list[Package]]):
+    def set_priority_manifest(self, manifest: dict[str, set[Package]]):
         self.priority_package_manifest = manifest
 
-    def set_standard_manifest(self, manifest: dict[str, list[Package]]):
+    def set_standard_manifest(self, manifest: dict[str, set[Package]]):
         self.standard_package_manifest = manifest
 
 
