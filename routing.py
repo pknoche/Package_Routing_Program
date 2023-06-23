@@ -8,9 +8,9 @@ if TYPE_CHECKING:
     from hub import Hub
 
 
-def generate_address_list(package_list: set[Package]) -> dict[str, set[Package]]:
+def generate_address_dict(packages: set[Package]) -> dict[str, set[Package]]:
     packages_by_address = {}
-    for package in package_list:
+    for package in packages:
         address = package.get_address()
         if address in packages_by_address:
             packages_by_address[address].add(package)
@@ -19,9 +19,9 @@ def generate_address_list(package_list: set[Package]) -> dict[str, set[Package]]
     return packages_by_address
 
 
-def calculate_delivery_groups(package_list: set[Package]):
+def calculate_delivery_groups(packages: set[Package]):
     delivery_group = 0
-    packages_by_address = generate_address_list(package_list)
+    packages_by_address = generate_address_dict(packages)
     for address, packages in packages_by_address.items():
         if len(packages) > 1:
             delivery_group += 1
@@ -29,8 +29,8 @@ def calculate_delivery_groups(package_list: set[Package]):
                 package.set_delivery_group(delivery_group)
 
 
-def calculate_delivery_priority(package_collection: PackageCollection, package_list: set[Package]):
-    for package in package_list:
+def calculate_delivery_priority(package_collection: PackageCollection, packages: set[Package]):
+    for package in packages:
         if package.deadline == datetime.time(hour=9, minute=0):
             package.priority = 1
             PackageCollection.add_priority_1_package(package_collection, package)
@@ -39,33 +39,33 @@ def calculate_delivery_priority(package_collection: PackageCollection, package_l
             PackageCollection.add_priority_2_package(package_collection, package)
 
 
-def generate_priority_list(package_list: set[Package]) -> dict[str, set[Package]]:
-    priority_list = set()
+def generate_priority_dict(package_set: set[Package]) -> dict[str, set[Package]]:
+    priority_packages = set()
     delivery_groups = set()
-    for package in package_list:
+    for package in package_set:
         if package.priority:
-            priority_list.add(package)
+            priority_packages.add(package)
         if package.delivery_group and package.delivery_group not in delivery_groups:
             delivery_groups.add(package.delivery_group)
-    for package in package_list:
-        if priority_list and package.delivery_group in delivery_groups and package not in priority_list:
-            priority_list.add(package)
-    return generate_address_list(priority_list)
+    for package in package_set:
+        if priority_packages and package.delivery_group in delivery_groups and package not in priority_packages:
+            priority_packages.add(package)
+    return generate_address_dict(priority_packages)
 
 
-def generate_delivery_group_list(package_list: set[Package]) -> dict[str, list[Package]]:
-    all_address_list = generate_address_list(package_list)
-    delivery_group_list = {address: packages for address, packages in all_address_list.items() if len(packages) > 1}
-    return delivery_group_list
+def generate_delivery_group_dict(packages: set[Package]) -> dict[str, set[Package]]:
+    all_address_dict = generate_address_dict(packages)
+    delivery_group_dict = {address: packages for address, packages in all_address_dict.items() if len(packages) > 1}
+    return delivery_group_dict
 
 
-def generate_single_package_delivery_list(package_list: set[Package]) -> set[Package]:
-    all_address_list = generate_address_list(package_list)
-    single_address_list = set()
-    for packages in all_address_list.values():
+def generate_single_package_delivery_set(packages: set[Package]) -> set[Package]:
+    all_address_dict = generate_address_dict(packages)
+    single_addresses = set()
+    for packages in all_address_dict.values():
         if len(packages) == 1:
-            single_address_list.add(next(iter(packages)))
-    return single_address_list
+            single_addresses.add(next(iter(packages)))
+    return single_addresses
 
 
 def floyd_warshall(adjacency_matrix: list[list[float]]):
