@@ -20,7 +20,7 @@ class Truck:
         self.num_packages_loaded = 0
         self.is_at_hub = True
         self.is_ready_for_dispatch = False
-        self.current_address = hub.get_hub_address()
+        self.current_address = hub.addresses.hub_address
         self.total_miles_traveled = 0.0
         self.hub = hub
         self.speed = speed
@@ -106,7 +106,7 @@ class Truck:
         self.travel_log.append(f'Traveled a total distance of {route_distance:.1f} miles on this route.\n')
 
     def return_to_hub(self):
-        hub_address = self.hub.get_hub_address()
+        hub_address = self.hub.addresses.hub_address
         if self.current_address != hub_address:
             self.total_miles_traveled += self.hub.addresses.distance_between(self.current_address, hub_address)
             self.current_address = hub_address

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 def generate_address_dict(packages: set[Package]) -> dict[str, set[Package]]:
     packages_by_address = {}
     for package in packages:
-        address = package.get_address()
+        address = package.address
         if address in packages_by_address:
             packages_by_address[address].add(package)
         else:
@@ -68,13 +68,13 @@ def generate_single_package_delivery_set(packages: set[Package]) -> set[Package]
     return single_addresses
 
 
-def floyd_warshall(adjacency_matrix: list[list[float]]):
-    num_vertices = len(adjacency_matrix)
+def floyd_warshall(distance_matrix: list[list[float]]):
+    num_vertices = len(distance_matrix)
     for k in range(num_vertices):
         for i in range(num_vertices):
             for j in range(num_vertices):
-                adjacency_matrix[i][j] = min(adjacency_matrix[i][j], adjacency_matrix[i][k] + adjacency_matrix[k][j])
-    return adjacency_matrix
+                distance_matrix[i][j] = min(distance_matrix[i][j], distance_matrix[i][k] + distance_matrix[k][j])
+    return distance_matrix
 
 
 def nearest_neighbor(hub: 'Hub', truck: Truck):
@@ -109,7 +109,7 @@ def nearest_neighbor(hub: 'Hub', truck: Truck):
         current_address = nearest_address
         standard_addresses.remove(current_address)
         min_distance = float('inf')
-    standard_route.append(hub.addresses.get_hub_address())
+    standard_route.append(hub.addresses.hub_address)
     truck.set_priority_route(priority_route)
     truck.set_standard_route(standard_route)
 
