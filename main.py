@@ -85,7 +85,7 @@ slc_hub.dispatch_trucks()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Tests - uncomment to run - prints out various data structures and information to confirm functionality:
-# tests.print_all_tests(slc_hub)
+tests.print_all_tests(slc_hub)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Launch UI:

@@ -41,7 +41,7 @@ class AddressCollection:
     """
 
     def __init__(self):
-        """Initializes an AddressCollection object."""
+        """Initializes AddressCollection."""
         self.all_addresses: dict[str, Address] = {}
         self.distance_matrix: list[list[float]] = []
         self.hub_address = None
