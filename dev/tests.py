@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import routing
 
 
@@ -33,26 +31,21 @@ def print_all_streets(hub):
     print('All Streets:')
     for street in hub.addresses.all_addresses:
         print(street)
-    print('\n\n')
+    print('\n')
 
 
-def test_distance_function(hub):
-    print('Distance test - should be 10.9:')
-    print(hub.addresses.distance_between(hub.addresses.get_hub_address(), '2010 W 500 S 84104'))
-    print('\n\n')
-
-
-def print_adjacency_matrix(hub):
-    print('Adjacency Matrix:')
-    for distance_list in hub.addresses.adjacency_matrix:
-        print(distance_list)
-    print('\n\n')
+def print_distance_matrix(hub):
+    print('Distance Matrix:')
+    for distance_list in hub.addresses.distance_matrix:
+        rounded_list = [round(distance, 1) for distance in distance_list]
+        print(rounded_list)
+    print('\n')
 
 
 def print_all_packages(hub):
     print('Status of all packages:')
     hub.packages.print_all_packages()
-    print('\n\n')
+    print('\n')
 
 
 def print_hash_table(hub):
@@ -62,7 +55,7 @@ def print_hash_table(hub):
         print(f'{i} ', end='')
         print(table)
         i += 1
-    print()
+    print('\n')
 
 
 def print_packages_by_delivery_groups(hub):
@@ -79,9 +72,10 @@ def print_packages_by_delivery_groups(hub):
         for package in packages:
             print(package)
         print()
+    print('\n')
 
 
-def print_routes(hub):  # Call from calculate_routes method in hub file
+def print_routes(hub):  # Call after for loop from calculate_routes method in hub file [tests.print_routes(self)]
     for truck in hub.trucks.all_trucks:
         print(
             f'Truck {truck.truck_id} priority route: {truck.priority_route}\n'
@@ -102,7 +96,7 @@ def print_routes(hub):  # Call from calculate_routes method in hub file
                 f'{hub.addresses.distance_between(truck.standard_route[j], truck.standard_route[j + 1]):.1f}')
             i += 1
             j += 1
-        print()
+        print('\n')
 
 
 def calculate_on_time_delivery(hub):
@@ -127,20 +121,25 @@ def calculate_on_time_delivery(hub):
         print('All packages were delivered on time!')
     elif not all_on_time:
         print('Some packages were delivered late.')
+    print('\n')
 
 
 def print_bound_packages(hub):
     print('Bound Packages:')
     for package in hub.packages.get_bound_packages():
         print(package)
+    print('\n')
 
 
 def print_all_tests(hub):
-    print_package_manifests(hub)
-    print_all_streets(hub)
-    print_adjacency_matrix(hub)
-    test_distance_function(hub)
     print_hash_table(hub)
+    print_distance_matrix(hub)
+    print_all_streets(hub)
+    print_bound_packages(hub)
+    print_packages_by_delivery_groups(hub)
+    print_all_packages(hub)
+    calculate_on_time_delivery(hub)
+    print('\n')
 
 
 # Replace the function by the same name in hub.py to print the route after each round of optimization
@@ -150,7 +149,7 @@ def print_all_tests(hub):
         for truck in self.trucks.all_trucks:
             priority_route = list(truck.priority_package_manifest.keys())
             standard_route = list(truck.standard_package_manifest.keys())
-            route = priority_route + standard_route + [self.addresses.get_hub_address()]
+            route = priority_route + standard_route + [self.addresses.hub_address]
             distance = 0.0
             if truck.is_at_hub:
                 for i in range(len(route) - 1):

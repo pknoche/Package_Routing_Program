@@ -5,7 +5,7 @@ from hub import Hub
 
 def main_menu(hub: Hub):
     while True:
-        print('Welcome to WGUPS. Please choose from one of the options below:')
+        print('Welcome to WGUPS Route Management System. Please choose from one of the options below:')
         print('1. Get the status of a single package at a specific time')
         print('2. Get the status of all packages at a snapshot in time')
         print('3. Get end of day report with truck history and package status')
@@ -18,6 +18,7 @@ def main_menu(hub: Hub):
             if choice == '1':
                 package_id = None
                 time_input = None
+                print()
                 while True:
                     try:
                         package_id = int(input('Enter Package ID: '))
@@ -44,6 +45,7 @@ def main_menu(hub: Hub):
 
             elif choice == '2':
                 time_input = None
+                print()
                 while True:
                     try:
                         time_input = input('Please enter a time in HH:mm format: ')
@@ -59,9 +61,11 @@ def main_menu(hub: Hub):
                 break
 
             elif choice == '3':
+                print()
                 hub.print_end_of_day_report()
                 input('\nPress Enter key to return to the main menu.\n')
                 break
 
             elif choice == '4':
+                print('\nProgram Exited\n')
                 exit()

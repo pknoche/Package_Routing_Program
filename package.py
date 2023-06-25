@@ -1,7 +1,7 @@
-import copy
 import csv
 from datetime import time, datetime
 from typing import Optional, TYPE_CHECKING, Union
+from copy import deepcopy
 
 if TYPE_CHECKING:
     from truck import Truck
@@ -45,7 +45,8 @@ class Package:
                 f'Zip: {self.zipcode}, Mass(kg): {self.mass}, Notes: {self.notes}, '
                 f'Delivery Deadline: {self.deadline}, Status: {self.status}')
 
-    def get_address(self) -> str:
+    @property
+    def address(self):
         return f'{self.street} {self.zipcode}'
 
     def update_address(self, street: str, city: str, state: str, zipcode: str):
@@ -103,7 +104,7 @@ class Package:
 
 
 class Hashtable:
-    def __init__(self, num_buckets: int = 10):
+    def __init__(self, num_buckets: int = 0):
         self.num_buckets = num_buckets
         self.table: list[list[Optional[Package]]] = []
         for i in range(num_buckets):
@@ -135,8 +136,8 @@ class Hashtable:
 
 
 class PackageCollection:
-    def __init__(self):
-        self.package_table = Hashtable()
+    def __init__(self, num_packages: int):
+        self.package_table = Hashtable(num_packages)
         self.num_packages = 0
         self.bound_packages = set()
         self.priority_1_packages = set()
@@ -215,7 +216,7 @@ class PackageCollection:
 
     def print_all_packages_at_time(self, time_input: time):
         # Make copy of packages so status can be modified for printing at snapshot in time without losing original data.
-        all_packages = copy.deepcopy(self.get_all_packages())
+        all_packages = deepcopy(self.get_all_packages())
         not_yet_arrived = []
         at_hub = []
         loaded_on_truck = []
