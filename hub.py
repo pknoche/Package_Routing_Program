@@ -31,8 +31,7 @@ class Hub:
     """A delivery hub for managing packages, addresses, and trucks assigned to the hub."""
     def __init__(self, package_file: str, address_file: str, distance_file: str, num_packages: int, num_trucks: int,
                  package_capacity_per_truck: int, average_truck_speed: float):
-        """
-        Initializes Hub.
+        """Initializes Hub.
         Args:
             package_file: The path to the CSV file containing packages.
             address_file: The path to the CSV file containing addresses.
@@ -58,6 +57,7 @@ class Hub:
         self.trucks = truck_module.TruckCollection()
         self.packages_ready_for_dispatch = set()
         self.hub_address = self.addresses.hub_address
+
         #  Create number of Truck objects specified in constructor.
         for i in range(num_trucks):
             truck = truck_module.Truck((i + 1), package_capacity_per_truck, average_truck_speed, self)
@@ -162,9 +162,9 @@ class Hub:
         # loaded by that method from the priority packages set. If there are no priority packages, do nothing.
         priority_packages = None
         if priority_num == 1:
-            priority_packages = self.packages.get_priority_1_packages()
+            priority_packages = self.packages.priority_1_packages
         elif priority_num == 2:
-            priority_packages = self.packages.get_priority_2_packages()
+            priority_packages = self.packages.priority_2_packages
         if priority_packages:
             packages_loaded = self.load_group_packages(truck, priority_packages, delivery_group_dict)
             for package in packages_loaded:
@@ -207,7 +207,7 @@ class Hub:
         # have a ready for delivery status code or are restricted to a truck that is not the current truck being loaded.
         for package in package_group:
             if package.priority and package.status_code == 1 and not package.delivery_group and \
-                    package not in self.packages.get_bound_packages():
+                    package not in self.packages.bound_packages:
                 if package.truck_restriction and package.truck_restriction != truck.truck_id:
                     continue
                 truck.load_package(package)
@@ -233,8 +233,8 @@ class Hub:
                 # If there is, load all bound packages onto the truck. While doing this, check the address of each
                 # of the bound packages to see if the address has a delivery group associated with it. If it is,
                 # add the address and the package to a dictionary.
-                if package in self.packages.get_bound_packages():
-                    bound_packages = self.packages.get_bound_packages()
+                if package in self.packages.bound_packages:
+                    bound_packages = self.packages.bound_packages
                     if len(bound_packages) <= truck.get_remaining_capacity():
                         for bound_package in bound_packages:
                             truck.load_package(bound_package)
@@ -286,7 +286,7 @@ class Hub:
         Space complexity: O(n), where n is the number of packages being loaded onto the truck.
         """
         bound_packages_loaded = set()
-        bound_packages = self.packages.get_bound_packages()
+        bound_packages = self.packages.bound_packages
         if len(bound_packages) > truck.get_remaining_capacity():
             return
         for package in bound_packages:
@@ -391,10 +391,10 @@ class Hub:
         late_deliveries = []
         for package in self.packages.get_all_packages():
             print(package)
-            if package.get_status_code() != 4:
+            if package.status_code != 4:
                 not_delivered.append(package)
                 continue
-            if package.get_on_time_delivery_status() is False:
+            if not package.delivered_on_time:
                 late_deliveries.append(package)
         print()
         if not not_delivered and not late_deliveries:

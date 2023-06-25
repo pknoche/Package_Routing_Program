@@ -33,10 +33,10 @@ def calculate_delivery_priority(package_collection: PackageCollection, packages:
     for package in packages:
         if package.deadline == datetime.time(hour=9, minute=0):
             package.priority = 1
-            PackageCollection.add_priority_1_package(package_collection, package)
+            package_collection.priority_1_packages.add(package)
         elif package.deadline == datetime.time(hour=10, minute=30):
             package.priority = 2
-            PackageCollection.add_priority_2_package(package_collection, package)
+            package_collection.priority_2_packages.add(package)
 
 
 def generate_priority_dict(package_set: set[Package]) -> dict[str, set[Package]]:
