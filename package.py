@@ -273,7 +273,7 @@ class Hashtable:
         self.table[key].append(package)
 
     def update(self, key: int, index: int, package: Package):
-        """Replaces an existing package in the table.
+        """Replaces an existing package in the table if two package IDs are the same.
 
         Args:
             key: The hash value of the package.
@@ -523,7 +523,7 @@ class PackageCollection:
         Time complexity: O(1)
         """
 
-        package = self.search(package_id)
+        package = copy.copy(self.search(package_id))  # Make a copy so the original object is not modified.
         if package.time_checked_in > time_input:
             package.set_status(0)
         elif package.time_loaded_on_truck > time_input:
