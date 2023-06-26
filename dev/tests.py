@@ -1,12 +1,27 @@
+"""This module contains functions used to test the internal workings of the program and is used only in development."""
+
+from typing import TYPE_CHECKING
+
 import routing
 
+if TYPE_CHECKING:
+    from hub import Hub
 
-def print_package_manifests(hub):
+
+def print_package_manifests(hub: 'Hub'):
+    """Prints the package manifest for each truck after it is loaded.
+
+    To use this function, it can be called after calculate_routes is called in main.
+
+    Args:
+        hub: The hub to print the manifests for.
+    """
+
     # print number of packages on each truck
     print('Package Manifests:')
     for i in range(len(hub.trucks.all_trucks)):
         truck = hub.trucks.all_trucks[i]
-        print(f'The number of packages on truck {truck.truck_id} is {truck.get_num_packages_loaded()}.')
+        print(f'The number of packages on truck {truck.truck_id} is {truck.num_packages_loaded}.')
     print()
 
     # print manifests for each truck
@@ -27,14 +42,26 @@ def print_package_manifests(hub):
         print('\n\n')
 
 
-def print_all_streets(hub):
+def print_all_addresses(hub: 'Hub'):
+    """Prints all addresses associated with the hub.
+
+    Args:
+        hub: The hub to print the addresses for.
+    """
+
     print('All Streets:')
     for street in hub.addresses.all_addresses:
         print(street)
     print('\n')
 
 
-def print_distance_matrix(hub):
+def print_distance_matrix(hub: 'Hub'):
+    """Prints the distance matrix associated with the hub.
+
+    Args:
+        hub: The hub to print the distance matrix for.
+    """
+
     print('Distance Matrix:')
     for distance_list in hub.addresses.distance_matrix:
         rounded_list = [round(distance, 1) for distance in distance_list]
@@ -42,13 +69,25 @@ def print_distance_matrix(hub):
     print('\n')
 
 
-def print_all_packages(hub):
+def print_all_packages(hub: 'Hub'):
+    """Prints all packages associated with the hub.
+
+    Args:
+        hub: The hub to print the packages for.
+    """
+
     print('Status of all packages:')
     hub.packages.print_all_packages()
     print('\n')
 
 
-def print_hash_table(hub):
+def print_hashtable(hub: 'Hub'):
+    """Prints the package hashtable for the hub.
+
+    Args:
+        hub: The hub to print the hashtable for.
+    """
+
     print('Package Hashtable:')
     i = 0
     for table in hub.packages.package_table.table:
@@ -58,7 +97,13 @@ def print_hash_table(hub):
     print('\n')
 
 
-def print_packages_by_delivery_groups(hub):
+def print_packages_by_delivery_groups(hub: 'Hub'):
+    """Prints all delivery group addresses and their associated packages.
+
+    Args:
+        hub: The hub to print the delivery groups for.
+    """
+
     delivery_groups = {}
     for package in hub.packages.get_all_packages():
         group_number = package.delivery_group
@@ -75,7 +120,16 @@ def print_packages_by_delivery_groups(hub):
     print('\n')
 
 
-def print_routes(hub):  # Call after for loop from calculate_routes method in hub file [tests.print_routes(self)]
+def print_routes(hub: 'Hub'):
+    """Prints routes for all trucks.
+
+    To use this function, it should be called after the for loop from calculate_routes method in the hub file
+    ("tests.print_routes(self)")
+
+    Args:
+        hub: The hub to print routes for.
+    """
+
     for truck in hub.trucks.all_trucks:
         print(
             f'Truck {truck.truck_id} priority route: {truck.priority_route}\n'
@@ -85,7 +139,6 @@ def print_routes(hub):  # Call after for loop from calculate_routes method in hu
             print(
                 f'The distance between {str(truck.priority_route[j])} and {str(truck.priority_route[j + 1])} is '
                 f'{hub.addresses.distance_between(truck.priority_route[j], truck.priority_route[j + 1])}')
-            i += 1
             j += 1
         j = 0
         print(f'Truck {truck.truck_id} standard route: {truck.standard_route}\n'
@@ -94,13 +147,17 @@ def print_routes(hub):  # Call after for loop from calculate_routes method in hu
             print(
                 f'The distance between {str(truck.standard_route[j])} and {str(truck.standard_route[j + 1])} is '
                 f'{hub.addresses.distance_between(truck.standard_route[j], truck.standard_route[j + 1]):.1f}')
-            i += 1
             j += 1
         print('\n')
 
 
-def calculate_on_time_delivery(hub):
-    time_format = '%I:%M %p'
+def calculate_on_time_delivery(hub: 'Hub'):
+    """Prints whether all packages were delivered on time or if some were late.
+
+    Args:
+        hub: The hub to make the calculation for.
+    """
+
     for package in hub.packages.get_all_packages():
         if package.deadline == 'EOD':
             if package.status_code == 4:
@@ -124,50 +181,33 @@ def calculate_on_time_delivery(hub):
     print('\n')
 
 
-def print_bound_packages(hub):
+def print_bound_packages(hub: 'Hub'):
+    """Prints the status of all bound packages.
+
+    Used to easily see if bound packages were delivered by the same truck on the same route.
+
+    Args:
+        hub: The hub to print the packages for.
+    """
+
     print('Bound Packages:')
     for package in hub.packages.bound_packages:
         print(package)
     print('\n')
 
 
-def print_all_tests(hub):
-    print_hash_table(hub)
+def print_all_tests(hub: 'Hub'):
+    """Prints all tests except print_package_manifests and print_routes, which must be called from elsewhere.
+
+    Args:
+        hub: The hub to print the tests for.
+    """
+
+    print_hashtable(hub)
     print_distance_matrix(hub)
-    print_all_streets(hub)
+    print_all_addresses(hub)
     print_bound_packages(hub)
     print_packages_by_delivery_groups(hub)
     print_all_packages(hub)
     calculate_on_time_delivery(hub)
     print('\n')
-
-
-# Replace the function by the same name in hub.py to print the route after each round of optimization
-'''
-    def calculate_routes(self):
-        # print route with no optimization
-        for truck in self.trucks.all_trucks:
-            priority_route = list(truck.priority_package_manifest.keys())
-            standard_route = list(truck.standard_package_manifest.keys())
-            route = priority_route + standard_route + [self.addresses.hub_address]
-            distance = 0.0
-            if truck.is_at_hub:
-                for i in range(len(route) - 1):
-                    distance += self.addresses.distance_between(route[i], route[i + 1])
-            truck.set_route(route)
-        print('No Optimization:')
-        tests.print_initial_routes(self)
-
-        # perform initial optimization with nearest neighbor
-        for truck in self.trucks.all_trucks:
-            if truck.is_at_hub:
-                routing.nearest_neighbor(self, truck)
-        print('After Initial Optimization:')
-        tests.print_initial_routes(self)
-
-        # perform additional optimization with 2-opt
-        for truck in self.trucks.all_trucks:
-            routing.two_opt(self, truck)
-        print('After 2-Opt:')
-        tests.print_initial_routes(self)
-'''

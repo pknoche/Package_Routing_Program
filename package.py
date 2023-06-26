@@ -6,8 +6,8 @@ of packages. This includes functionality for importing packages from a CSV file.
 
 import csv
 import datetime
-from typing import Optional, TYPE_CHECKING, Union
 import copy
+from typing import Optional, TYPE_CHECKING
 
 import routing
 
@@ -45,6 +45,7 @@ class Package:
         time_out_for_delivery: The time the package was sent out for delivery.
         time_delivered: The time the package was delivered.
     """
+
     status_codes = {
         0: 'Not Yet Arrived',
         1: 'Ready For Dispatch',
@@ -85,7 +86,7 @@ class Package:
         self.status = self.status_codes.get(self.status_code)
         self.ready_for_delivery = False
         self.truck = None
-        self.delivered_on_time: Union[bool, None] = None
+        self.delivered_on_time: Optional[bool] = None
         self.time_checked_in = None
         self.time_loaded_on_truck = None
         self.time_out_for_delivery = None
@@ -178,8 +179,8 @@ class Package:
             truck: The truck the package was loaded on.
         """
 
-        self.truck = truck.get_truck_id()
-        self.time_loaded_on_truck = truck.get_time()
+        self.truck = truck.truck_id
+        self.time_loaded_on_truck = truck.current_time
         self.set_status(2, f'Loaded on truck {truck.truck_id} at {self.time_loaded_on_truck}')
 
     def mark_package_out_for_delivery(self, truck: 'Truck'):
@@ -189,7 +190,7 @@ class Package:
             truck: The truck the package is out for delivery on.
         """
 
-        self.time_out_for_delivery = truck.get_time()
+        self.time_out_for_delivery = truck.current_time
         self.set_status(3, f'Out for delivery on truck {truck.truck_id} at {self.time_out_for_delivery}')
 
     def mark_package_delivered(self, truck: 'Truck'):
@@ -199,7 +200,7 @@ class Package:
             truck: The truck that delivered the package.
         """
 
-        self.time_delivered = truck.get_time()
+        self.time_delivered = truck.current_time
         if self.deadline != 'EOD':
             if self.time_delivered > self.deadline:
                 self.delivered_on_time = False
@@ -230,6 +231,7 @@ class Hashtable:
             num_buckets: The number of buckets to create in the hashtable. To optimize performance, package ID's should
               be contiguous and num_buckets should be set to the number of packages being imported.
         """
+
         self.num_buckets = num_buckets
         self.table: list[list[Optional[Package]]] = []
         for i in range(num_buckets):
@@ -252,9 +254,10 @@ class Hashtable:
         Args:
             package: The package to be inserted.
 
-        Time complexity: O(1) if the hash table is used as intended with num_buckets set to the number of packages
-        imported and contiguous package ID's. O(n) otherwise, with n representing the number of packages in the
-        hashtable.
+        Time complexity: O(n), where n is the number of packages in the hashtable. In the vast majority of instances,
+        the actual time complexity will be O(1). O(n) is the worst case scenario where every package has the same hash
+        value, which would only happen in instances where every package evaluated to the same hash value, which is
+        unlikely to occur.
 
         Space complexity: O(1)
         """
@@ -290,9 +293,10 @@ class Hashtable:
 
         Returns: The package corresponding to the package ID if it is in the table, None otherwise.
 
-        Time complexity: O(1) if the hashtable is used as intended with num_buckets set to the number of packages
-        imported and contiguous package ID's. O(n) otherwise, with n representing the number of packages in the
-        hashtable.
+        Time complexity: O(n), where n is the number of packages in the hashtable. In the vast majority of instances,
+        the actual time complexity will be O(1). O(n) is the worst case scenario where every package has the same hash
+        value, which would only happen in instances where every package evaluated to the same hash value, which is
+        unlikely to occur.
         """
 
         key = self.hash(package_id)
@@ -315,7 +319,7 @@ class PackageCollection:
         priority_2_packages: A set containing priority 2 packages, which are packages with a delivery deadline of 10:30.
     """
 
-    def __init__(self, num_packages: int = 40):
+    def __init__(self, num_packages: Optional[int]):
         """Initializes a PackageCollection.
 
         Args:
@@ -323,7 +327,10 @@ class PackageCollection:
               argument is provided.
         """
 
-        self.package_table = Hashtable(num_packages)
+        if num_packages:
+            self.package_table = Hashtable(num_packages)
+        else:
+            self.package_table = Hashtable()
         self.bound_packages = set()
         self.priority_1_packages = set()
         self.priority_2_packages = set()
@@ -339,6 +346,7 @@ class PackageCollection:
 
         Space complexity: O(n), where n is the number of packages in the CSV file.
         """
+
         with open(file, newline='') as packages:
             package_data = csv.reader(packages)
             next(package_data)
@@ -406,6 +414,7 @@ class PackageCollection:
 
         Space complexity: O(n), where n is the number of packages in the collection.
         """
+
         all_packages = []
         for bucket in self.package_table.table:
             for package in bucket:
@@ -427,7 +436,8 @@ class PackageCollection:
         Args:
             time_input: The time to use for creating the snapshot.
 
-        Time complexity: O(n), where n is the number of packages in the collection.
+        Time complexity: O(n log n), where n is the number of packages in the collection, due to the get_all_packages
+        method call, which sorts all packages by package ID.
 
         Space complexity: O(n), where n is the number of packages in the collection.
         """
@@ -512,6 +522,7 @@ class PackageCollection:
 
         Time complexity: O(1)
         """
+
         package = self.search(package_id)
         if package.time_checked_in > time_input:
             package.set_status(0)

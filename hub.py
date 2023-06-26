@@ -13,24 +13,32 @@ Typical usage example:
     hub.dispatch_trucks()
 """
 
-
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from package import Package
-    from truck import Truck
-    from datetime import time
+from typing import TYPE_CHECKING, Optional
 
 import routing
 import address as address_module
 import package as package_module
 import truck as truck_module
 
+if TYPE_CHECKING:
+    from package import Package
+    from truck import Truck
+    from datetime import time
+
 
 class Hub:
-    """A delivery hub for managing packages, addresses, and trucks assigned to the hub."""
-    def __init__(self, package_file: str, address_file: str, distance_file: str, num_packages: int, num_trucks: int,
-                 package_capacity_per_truck: int, average_truck_speed: float):
+    """A delivery hub for managing packages, addresses, and trucks assigned to the hub.
+        Attributes:
+            packages: Stores the package collection associated with the hub.
+            addresses: Stores the AddressCollection associated with the hub.
+            trucks: Stores the TruckCollection associated with the hub.
+            packages_ready_for_dispatch: The packages that have been checked in and have a ready for dispatch status
+              code.
+            hub_address: The address of the hub.
+    """
+
+    def __init__(self, package_file: str, address_file: str, distance_file: str, num_trucks: int,
+                 package_capacity_per_truck: int, average_truck_speed: float, num_packages: Optional[int]):
         """Initializes Hub.
         Args:
             package_file: The path to the CSV file containing packages.
@@ -49,7 +57,10 @@ class Hub:
         """
 
         #  Import data and assign to hub.
-        self.packages = package_module.PackageCollection(num_packages)
+        if num_packages:
+            self.packages = package_module.PackageCollection(num_packages)
+        else:
+            self.packages = package_module.PackageCollection(None)
         self.packages.import_packages(package_file)
         self.addresses = address_module.AddressCollection()
         self.addresses.import_addresses(address_file)
@@ -118,21 +129,21 @@ class Hub:
         for truck in self.trucks.all_trucks:
             # Call each method that determines packages to be loaded as long as the truck is ready for dispatch and
             # has capacity.
-            if truck.is_at_hub and truck.is_ready_for_dispatch and truck.get_remaining_capacity() > 0:
+            if truck.is_at_hub and truck.is_ready_for_dispatch and truck.remaining_capacity > 0:
                 delivery_group_dict = routing.generate_delivery_group_dict(self.packages_ready_for_dispatch)
                 self.load_priority_packages(truck, delivery_group_dict, priority_num=1)
-                if truck.get_remaining_capacity() > 0:
+                if truck.remaining_capacity > 0:
                     self.load_priority_packages(truck, delivery_group_dict, priority_num=2)
-                if truck.get_remaining_capacity() > 0:
+                if truck.remaining_capacity > 0:
                     self.load_group_packages(truck, self.packages_ready_for_dispatch, delivery_group_dict)
-                if truck.get_remaining_capacity() > 0:
+                if truck.remaining_capacity > 0:
                     self.load_bound_packages(truck)
-                if truck.get_remaining_capacity() > 0:
+                if truck.remaining_capacity > 0:
                     self.load_single_packages(truck)
 
                 # Make a copy of the packages_on_truck set and use it to generate priority and standard manifests. A
                 # copy is made so that it can be modified without affecting the set that is attached to the truck.
-                packages_on_truck = truck.get_packages().copy()
+                packages_on_truck = truck.packages_on_truck.copy()
                 priority_manifest = routing.generate_priority_dict(packages_on_truck)
                 # Remove packages that were added to the priority manifest so the remaining packages can be added to
                 # the standard manifest.
@@ -141,8 +152,8 @@ class Hub:
                         packages_on_truck.remove(package)
                 standard_manifest = routing.generate_address_dict(packages_on_truck)
 
-                truck.set_priority_manifest(priority_manifest)
-                truck.set_standard_manifest(standard_manifest)
+                truck.priority_package_manifest = priority_manifest
+                truck.standard_package_manifest = standard_manifest
 
     def load_priority_packages(self, truck: 'Truck', delivery_group_dict: dict[str, set['Package']], priority_num: int):
         """Considers packages with a delivery deadline for loading onto the truck.
@@ -235,7 +246,7 @@ class Hub:
                 # add the address and the package to a dictionary.
                 if package in self.packages.bound_packages:
                     bound_packages = self.packages.bound_packages
-                    if len(bound_packages) <= truck.get_remaining_capacity():
+                    if len(bound_packages) <= truck.remaining_capacity:
                         for bound_package in bound_packages:
                             truck.load_package(bound_package)
                             packages_loaded.add(bound_package)
@@ -253,7 +264,7 @@ class Hub:
                     if bound_packages_loaded_addresses:
                         for address in bound_packages_loaded_addresses:
                             num_packages = len(bound_packages_loaded_addresses[address])
-                            if len(delivery_group_dict.get(address)) - num_packages <= truck.get_remaining_capacity():
+                            if len(delivery_group_dict.get(address)) - num_packages <= truck.remaining_capacity:
                                 for grouped_package in delivery_group_dict.get(address):
                                     truck.load_package(grouped_package)
                                     packages_loaded.add(grouped_package)
@@ -262,7 +273,7 @@ class Hub:
                 # group on the truck. If there is, load each package from that delivery group.
                 else:
                     if package.delivery_group and len(
-                            delivery_group_dict[package.address]) <= truck.get_remaining_capacity():
+                            delivery_group_dict[package.address]) <= truck.remaining_capacity:
                         delivery_group = delivery_group_dict.get(package.address)
                         for grouped_package in delivery_group:
                             truck.load_package(grouped_package)
@@ -285,9 +296,10 @@ class Hub:
 
         Space complexity: O(n), where n is the number of packages being loaded onto the truck.
         """
+
         bound_packages_loaded = set()
         bound_packages = self.packages.bound_packages
-        if len(bound_packages) > truck.get_remaining_capacity():
+        if len(bound_packages) > truck.remaining_capacity:
             return
         for package in bound_packages:
             if package.truck_restriction and package.truck_restriction != truck.truck_id or \
@@ -313,7 +325,7 @@ class Hub:
 
         single_packages = routing.generate_single_package_delivery_set(self.packages_ready_for_dispatch)
         packages_loaded = set()
-        while truck.get_remaining_capacity() > 0 and len(single_packages) > 0:
+        while truck.remaining_capacity > 0 and len(single_packages) > 0:
             package = next(iter(single_packages))
             if package.truck_restriction:
                 if package.truck_restriction != truck.truck_id:
@@ -354,15 +366,17 @@ class Hub:
 
         Space complexity: O(n), where n is the number of unique addresses of the packages loaded on the truck.
         """
+
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch:
-                routing.calculate_route(self, truck)
+                routing.calculate_route(truck)
 
     def dispatch_trucks(self):
         """Dispatches trucks to deliver packages.
 
         Time complexity: O(n), where n is the number of packages on the truck.
         """
+
         for truck in self.trucks.all_trucks:
             if truck.is_at_hub and truck.is_ready_for_dispatch:
                 truck.begin_route()
@@ -370,20 +384,22 @@ class Hub:
     def print_end_of_day_report(self):
         """Prints a report showing the history of all trucks and the status of all packages at the end of the day.
 
-        Time complexity: O(n), where n is the number of packages that have been imported.
+        Time complexity: O(n log n), where n is the number of packages that have been imported, due to the
+        get_all_packages method call, which sorts all packages by package ID.
 
         Space complexity: O(n), where n is the number of packages that have been imported, since any packages that
         were delivered late or not delivered will be added to a new list.
         """
+
         print('Truck Report:\n')
         total_miles_traveled = 0
         for truck in self.trucks.all_trucks:
-            print(f'Truck {truck.get_truck_id()}:')
+            print(f'Truck {truck.truck_id}:')
             for entry in truck.travel_log:
                 print(entry)
-            total_miles_traveled += truck.get_miles_traveled()
-            print(f'Total distance traveled by truck {truck.get_truck_id()} today: '
-                  f'{truck.get_miles_traveled():.1f} miles.\n')
+            total_miles_traveled += truck.total_miles_traveled
+            print(f'Total distance traveled by truck {truck.truck_id} today: '
+                  f'{truck.total_miles_traveled:.1f} miles.\n')
         print(f'\nTotal distance traveled by all trucks today: {total_miles_traveled:.1f} miles.\n\n')
 
         print('Package Report:\n')
