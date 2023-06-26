@@ -22,8 +22,8 @@ package_capacity_per_truck = 16
 package_9_address_update_time = datetime.time(hour=10, minute=20)
 
 # Create Delivery Hub
-slc_hub = hub.Hub(package_data, address_data, distance_data, num_packages, num_operational_trucks,
-                  package_capacity_per_truck, truck_speed_MPH)
+slc_hub = hub.Hub(package_data, address_data, distance_data, num_operational_trucks,
+                  package_capacity_per_truck, truck_speed_MPH, num_packages)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Package Configuration:
@@ -33,6 +33,7 @@ time_scanned = datetime.datetime.strptime('7:00', '%H:%M').time()
 for i in range(1, 41):
     if i not in (6, 9, 25, 28, 32):
         slc_hub.check_in_package(time_scanned, i)
+    # Override the status of the package with the incorrect address.
     slc_hub.check_in_package(time_scanned, 9, 5)
 
 # Set restriction for packages that can only go on truck 2
@@ -52,7 +53,7 @@ truck2 = slc_hub.trucks.all_trucks[1]
 
 # Dispatch first truck:
 truck1.set_route_start_time(hour=8, minute=0)
-truck1.set_ready_for_dispatch(True)
+truck1.is_ready_for_dispatch = True
 slc_hub.load_trucks()
 slc_hub.calculate_routes()
 slc_hub.dispatch_trucks()
@@ -64,7 +65,7 @@ for i in (6, 25, 28, 32):
 
 # Dispatch second truck:
 truck2.set_route_start_time(hour=9, minute=5)
-truck2.set_ready_for_dispatch(True)
+truck2.is_ready_for_dispatch = True
 slc_hub.load_trucks()
 slc_hub.calculate_routes()
 slc_hub.dispatch_trucks()
@@ -72,20 +73,20 @@ slc_hub.dispatch_trucks()
 # Dispatch final truck after package 9 address is updated:
 
 # Set time of truck to package update time if truck returned to hub before update time:
-if truck2.get_time() < package_9_address_update_time:
+if truck2.current_time < package_9_address_update_time:
     truck2.set_current_time(package_9_address_update_time)
 
 # Update package 9 address and status and dispatch final truck:
 slc_hub.correct_package_address(package_id=9, street='410 S STATE ST', city='SALT LAKE CITY', state='UT',
                                 zipcode='84111')
-truck2.set_ready_for_dispatch(True)
+truck2.is_ready_for_dispatch = True
 slc_hub.load_trucks()
 slc_hub.calculate_routes()
 slc_hub.dispatch_trucks()
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Tests - uncomment to run - prints out various data structures and information to confirm functionality:
-tests.print_all_tests(slc_hub)
+# tests.print_all_tests(slc_hub)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Launch UI:
